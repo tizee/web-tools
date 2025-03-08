@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ExifCleaner</title>
+    <style>
+      :root {
+        /* Light theme (default) */
+        --primary-color: #6366f1;
+        --primary-light: #818cf8;
+        --primary-dark: #4f46e5;
+        --accent-color: #f472b6;
+        --background: #f9fafb;
+        --card-bg: #ffffff;
+        --text-primary: #1f2937;
+        --text-secondary: #6b7280;
+        --success: #10b981;
+        --error: #ef4444;
+        --border-color: #d1d5db;
+        --border-radius: 12px;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow:
+          0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg:
+          0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --transition: all 0.2s ease;
+      }
+
+      /* Follow system preference by default */
+      @media (prefers-color-scheme: dark) {
+        html {
+          --background: #0f172a;
+          --card-bg: #1e293b;
+          --text-primary: #f3f4f6;
+          --text-secondary: #9ca3af;
+          --border-color: #374151;
+          --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+          --shadow:
+            0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+          --shadow-lg:
+            0 10px 15px -3px rgba(0, 0, 0, 0.3),
+            0 4px 6px -2px rgba(0, 0, 0, 0.2);
+        }
+        html body {
+          background-image: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+
+        html .upload-area {
+          background-color: rgba(30, 41, 59, 0.8);
+        }
+        html .upload-area:hover {
+          background-color: rgba(30, 41, 59, 0.5);
+        }
+
+        .exif-info {
+          background-color: rgba(30, 41, 59, 0.5);
+        }
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+      }
+
+      body {
+        background: var(--background);
+        color: var(--text-primary);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 375px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 10px;
+      }
+
+      .logo {
+        font-size: 24px;
+        font-weight: 800;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--accent-color)
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 5px;
+      }
+
+      .subtitle {
+        font-size: 14px;
+        color: var(--text-secondary);
+        font-weight: 400;
+      }
+
+      .card {
+        background: var(--card-bg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        padding: 20px;
+        transition: var(--transition);
+      }
+
+      .card:hover {
+        box-shadow: var(--shadow-lg);
+      }
+      .upload-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 180px;
+        border: 2px dashed var(--border-color);
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        transition: var(--transition);
+        background-color: rgba(255, 255, 255, 0.5);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .upload-area:hover {
+        border-color: var(--primary-light);
+        background-color: rgba(255, 255, 255, 0.8);
+      }
+
+      .upload-area.dragging {
+        border-color: var(--primary-color);
+        background-color: rgba(255, 255, 255, 0.9);
+      }
+
+      .upload-text {
+        font-size: 16px;
+        color: var(--text-primary);
+        text-align: center;
+        margin-bottom: 8px;
+        font-weight: 500;
+      }
+
+      .upload-subtext {
+        font-size: 12px;
+        color: var(--text-secondary);
+        text-align: center;
+      }
+
+      #fileInput {
+        display: none;
+      }
+
+      .preview-container {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .image-preview {
+        width: 100%;
+        max-height: 300px;
+        object-fit: contain;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .exif-info {
+        width: 100%;
+        max-height: 150px;
+        overflow-y: auto;
+        font-size: 12px;
+        color: var(--text-secondary);
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      .button-container {
+        display: flex;
+        gap: 10px;
+        width: 100%;
+      }
+
+      .btn {
+        flex: 1;
+        padding: 12px 20px;
+        border: none;
+        border-radius: var(--border-radius);
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: var(--transition);
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--primary-dark)
+        );
+        color: white;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(79, 70, 229, 0.4);
+      }
+
+      .btn-secondary {
+        background: white;
+        color: var(--primary-color);
+        border: 1px solid #e5e7eb;
+      }
+
+      .btn-secondary:hover {
+        background-color: #f9fafb;
+        border-color: var(--primary-light);
+      }
+
+      .status {
+        display: none;
+        padding: 12px;
+        border-radius: var(--border-radius);
+        font-size: 14px;
+        font-weight: 500;
+        text-align: center;
+        animation: fadeIn 0.3s ease;
+      }
+
+      .status-success {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+      }
+
+      .status-error {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: var(--error);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+      }
+
+      .status-info {
+        background-color: rgba(99, 102, 241, 0.1);
+        color: var(--primary-color);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+      }
+
+      .loading-indicator {
+        display: none;
+        padding: 12px;
+        border-radius: var(--border-radius);
+        font-size: 14px;
+        font-weight: 500;
+        text-align: center;
+        background-color: rgba(99, 102, 241, 0.1);
+        color: var(--primary-color);
+        animation: pulse 1.5s infinite ease-in-out;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 0.6;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0.6;
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .footer {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background: #0f172a;
+          --card-bg: #1e293b;
+          --text-primary: #f3f4f6;
+          --text-secondary: #9ca3af;
+          --primary-color: #818cf8;
+          --primary-light: #a5b4fc;
+          --primary-dark: #6366f1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1 class="logo">ExifCleaner</h1>
+        <p class="subtitle">Remove metadata from your photos</p>
+      </div>
+
+      <div class="card">
+        <div id="uploadContainer" class="upload-area">
+          <p class="upload-text">Click or drop image here</p>
+          <p class="upload-subtext">
+            Your photos will be processed locally, nothing gets uploaded
+          </p>
+          <input type="file" id="fileInput" accept="image/*" />
+        </div>
+
+        <div id="previewContainer" class="preview-container">
+          <img id="imagePreview" class="image-preview" src="" alt="Preview" />
+          <div id="exifInfo" class="exif-info"></div>
+          <div class="button-container">
+            <button id="resetBtn" class="btn btn-secondary">Back</button>
+            <button id="downloadBtn" class="btn btn-primary">Download</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="loadingIndicator" class="loading-indicator">
+        Processing your image...
+      </div>
+
+      <div id="statusMessage" class="status"></div>
+    </div>
+
+    <div class="footer">
+      <p>
+        Privacy-focused • No data sent to servers • All processing done locally
+      </p>
+    </div>
+  </body>
+  <script>
+    // --------------- EXIF.js (Simplified) ---------------
+    // This is a simplified version of the EXIF.js library
+    const EXIF = (function () {
+      const ExifTags = {
+        0x9000: "ExifVersion",
+        0xa001: "ColorSpace",
+        0xa002: "PixelXDimension",
+        0xa003: "PixelYDimension",
+        0x9003: "DateTimeOriginal",
+        0x9004: "DateTimeDigitized",
+        0x829a: "ExposureTime",
+        0x829d: "FNumber",
+        0x8827: "ISOSpeedRatings",
+        0x9201: "ShutterSpeedValue",
+        0x9202: "ApertureValue",
+        0x9204: "ExposureBias",
+        0x9205: "MaxApertureValue",
+        0x9206: "SubjectDistance",
+        0x9207: "MeteringMode",
+        0x9208: "LightSource",
+        0x9209: "Flash",
+        0x920a: "FocalLength",
+        0xa405: "FocalLengthIn35mmFilm",
+        0xa406: "SceneCaptureType",
+        0xa408: "Contrast",
+        0xa409: "Saturation",
+        0xa40a: "Sharpness",
+      };
+
+      const TiffTags = {
+        0x0100: "ImageWidth",
+        0x0101: "ImageHeight",
+        0x0102: "BitsPerSample",
+        0x0103: "Compression",
+        0x0106: "PhotometricInterpretation",
+        0x0112: "Orientation",
+        0x0115: "SamplesPerPixel",
+        0x011a: "XResolution",
+        0x011b: "YResolution",
+        0x0128: "ResolutionUnit",
+        0x0132: "DateTime",
+        0x010e: "ImageDescription",
+        0x010f: "Make",
+        0x0110: "Model",
+        0x0131: "Software",
+        0x013b: "Artist",
+        0x8298: "Copyright",
+      };
+
+      const GPSTags = {
+        0x0001: "GPSLatitudeRef",
+        0x0002: "GPSLatitude",
+        0x0003: "GPSLongitudeRef",
+        0x0004: "GPSLongitude",
+        0x0005: "GPSAltitudeRef",
+        0x0006: "GPSAltitude",
+        0x001d: "GPSDateStamp",
+      };
+
+      function getStringFromDB(buffer, start, length) {
+        let outstr = "";
+        for (let n = start; n < start + length; n++) {
+          outstr += String.fromCharCode(buffer.getUint8(n));
+        }
+        return outstr;
+      }
+
+      function readTags(file, tiffStart, dirStart, strings, bigEnd) {
+        const entries = file.getUint16(dirStart, !bigEnd);
+        const tags = {};
+
+        for (let i = 0; i < entries; i++) {
+          const entryOffset = dirStart + i * 12 + 2;
+          const tag = strings[file.getUint16(entryOffset, !bigEnd)];
+
+          if (tag) {
+            tags[tag] = readTagValue(file, entryOffset, tiffStart, bigEnd);
+          }
+        }
+        return tags;
+      }
+
+      function readTagValue(file, entryOffset, tiffStart, bigEnd) {
+        const type = file.getUint16(entryOffset + 2, !bigEnd);
+        const numValues = file.getUint32(entryOffset + 4, !bigEnd);
+        const valueOffset =
+          file.getUint32(entryOffset + 8, !bigEnd) + tiffStart;
+
+        switch (type) {
+          case 1: // byte, 8-bit unsigned int
+          case 7: // undefined, 8-bit byte, value depending on field
+            if (numValues == 1) {
+              return file.getUint8(entryOffset + 8);
+            } else {
+              const offset = numValues > 4 ? valueOffset : entryOffset + 8;
+              const vals = [];
+              for (let n = 0; n < numValues; n++) {
+                vals[n] = file.getUint8(offset + n);
+              }
+              return vals;
+            }
+          case 2: // ascii, 8-bit byte
+            const offset = numValues > 4 ? valueOffset : entryOffset + 8;
+            return getStringFromDB(file, offset, numValues - 1);
+          case 3: // short, 16 bit int
+            if (numValues == 1) {
+              return file.getUint16(entryOffset + 8, !bigEnd);
+            } else {
+              const vals = [];
+              for (let n = 0; n < numValues; n++) {
+                vals[n] = file.getUint16(valueOffset + 2 * n, !bigEnd);
+              }
+              return vals;
+            }
+          case 4: // long, 32 bit int
+            if (numValues == 1) {
+              return file.getUint32(entryOffset + 8, !bigEnd);
+            } else {
+              const vals = [];
+              for (let n = 0; n < numValues; n++) {
+                vals[n] = file.getUint32(valueOffset + 4 * n, !bigEnd);
+              }
+              return vals;
+            }
+          default:
+            return "Unknown type: " + type;
+        }
+      }
+
+      function findEXIFinJPEG(file) {
+        if (file.getUint8(0) != 0xff || file.getUint8(1) != 0xd8) {
+          return false; // not a valid JPEG
+        }
+
+        let offset = 2;
+        const length = file.byteLength;
+
+        while (offset < length) {
+          if (file.getUint8(offset) != 0xff) {
+            return false; // not a valid marker
+          }
+
+          const marker = file.getUint8(offset + 1);
+
+          // 0xE1 = Application Marker (Exif)
+          if (marker == 0xe1) {
+            return readEXIFData(
+              file,
+              offset + 4,
+              file.getUint16(offset + 2) - 2,
+            );
+          } else {
+            offset += 2 + file.getUint16(offset + 2);
+          }
+        }
+        return false;
+      }
+
+      function readEXIFData(file, start) {
+        if (getStringFromDB(file, start, 4) != "Exif") {
+          return false;
+        }
+
+        let bigEnd;
+        const tiffOffset = start + 6;
+
+        // Test for TIFF validity and endianness
+        if (file.getUint16(tiffOffset) == 0x4949) {
+          bigEnd = false;
+        } else if (file.getUint16(tiffOffset) == 0x4d4d) {
+          bigEnd = true;
+        } else {
+          return false;
+        }
+
+        if (file.getUint16(tiffOffset + 2, !bigEnd) != 0x002a) {
+          return false;
+        }
+
+        const firstIFDOffset = file.getUint32(tiffOffset + 4, !bigEnd);
+        if (firstIFDOffset < 0x00000008) {
+          return false;
+        }
+
+        const tags = readTags(
+          file,
+          tiffOffset,
+          tiffOffset + firstIFDOffset,
+          TiffTags,
+          bigEnd,
+        );
+
+        if (tags.ExifIFDPointer) {
+          const exifData = readTags(
+            file,
+            tiffOffset,
+            tiffOffset + tags.ExifIFDPointer,
+            ExifTags,
+            bigEnd,
+          );
+          for (const tag in exifData) {
+            tags[tag] = exifData[tag];
+          }
+        }
+
+        if (tags.GPSInfoIFDPointer) {
+          const gpsData = readTags(
+            file,
+            tiffOffset,
+            tiffOffset + tags.GPSInfoIFDPointer,
+            GPSTags,
+            bigEnd,
+          );
+          for (const tag in gpsData) {
+            tags[tag] = gpsData[tag];
+          }
+        }
+
+        return tags;
+      }
+
+      function getData(img, callback) {
+        if (
+          (img instanceof Image || img instanceof HTMLImageElement) &&
+          !img.complete
+        ) {
+          return false;
+        }
+
+        if (!imageHasData(img)) {
+          getImageData(img, callback);
+        } else {
+          if (callback) {
+            callback.call(img);
+          }
+        }
+        return true;
+      }
+
+      function getImageData(img, callback) {
+        const handleBinaryFile = function (binFile) {
+          const data = findEXIFinJPEG(new DataView(binFile));
+          img.exifdata = data || {};
+          if (callback) {
+            callback.call(img);
+          }
+        };
+
+        if (img.src) {
+          // Handle data URI or Blob URL
+          if (/^data\:/i.test(img.src)) {
+            const arrayBuffer = base64ToArrayBuffer(img.src);
+            handleBinaryFile(arrayBuffer);
+          } else if (/^blob\:/i.test(img.src)) {
+            const fileReader = new FileReader();
+            fileReader.onload = function (e) {
+              handleBinaryFile(e.target.result);
+            };
+            objectURLToBlob(img.src, function (blob) {
+              fileReader.readAsArrayBuffer(blob);
+            });
+          } else {
+            const http = new XMLHttpRequest();
+            http.onload = function () {
+              if (this.status == 200 || this.status === 0) {
+                handleBinaryFile(http.response);
+              }
+            };
+            http.open("GET", img.src, true);
+            http.responseType = "arraybuffer";
+            http.send(null);
+          }
+        } else if (
+          self.FileReader &&
+          (img instanceof Blob || img instanceof File)
+        ) {
+          const fileReader = new FileReader();
+          fileReader.onload = function (e) {
+            handleBinaryFile(e.target.result);
+          };
+          fileReader.readAsArrayBuffer(img);
+        }
+      }
+
+      function imageHasData(img) {
+        return !!img.exifdata;
+      }
+
+      function base64ToArrayBuffer(base64) {
+        base64 = base64.replace(/^data\:([^\;]+)\;base64,/gim, "");
+        const binary = atob(base64);
+        const len = binary.length;
+        const buffer = new ArrayBuffer(len);
+        const view = new Uint8Array(buffer);
+        for (let i = 0; i < len; i++) {
+          view[i] = binary.charCodeAt(i);
+        }
+        return buffer;
+      }
+
+      function objectURLToBlob(url, callback) {
+        const http = new XMLHttpRequest();
+        http.open("GET", url, true);
+        http.responseType = "blob";
+        http.onload = function (e) {
+          if (this.status == 200 || this.status === 0) {
+            callback(this.response);
+          }
+        };
+        http.send();
+      }
+
+      return {
+        getData: getData,
+        getTag: function (img, tag) {
+          if (!imageHasData(img)) return;
+          return img.exifdata[tag];
+        },
+        getAllTags: function (img) {
+          if (!imageHasData(img)) return {};
+          let a,
+            data = img.exifdata,
+            tags = {};
+          for (a in data) {
+            if (data.hasOwnProperty(a)) {
+              tags[a] = data[a];
+            }
+          }
+          return tags;
+        },
+        pretty: function (img) {
+          if (!imageHasData(img)) return "";
+          let a,
+            data = img.exifdata,
+            strPretty = "";
+          for (a in data) {
+            if (data.hasOwnProperty(a)) {
+              if (typeof data[a] == "object") {
+                if (data[a] instanceof Number) {
+                  strPretty += a + " : " + data[a] + "\n";
+                } else {
+                  strPretty += a + " : [" + data[a].length + " values]\n";
+                }
+              } else {
+                strPretty += a + " : " + data[a] + "\n";
+              }
+            }
+          }
+          return strPretty;
+        },
+      };
+    })();
+
+    // --------------- App Code ---------------
+    const fileInput = document.getElementById("fileInput");
+    const uploadContainer = document.getElementById("uploadContainer");
+    const previewContainer = document.getElementById("previewContainer");
+    const imagePreview = document.getElementById("imagePreview");
+    const exifInfo = document.getElementById("exifInfo");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const statusMessage = document.getElementById("statusMessage");
+    const loadingIndicator = document.getElementById("loadingIndicator");
+
+    let originalFileName = "";
+    let cleanedImageBlob = null;
+    let hasExifData = false;
+
+    // Setup event listeners
+    uploadContainer.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", handleFileSelect);
+    downloadBtn.addEventListener("click", downloadCleanedImage);
+    resetBtn.addEventListener("click", resetApp);
+
+    // Setup drag and drop
+    ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+      uploadContainer.addEventListener(eventName, preventDefaults, false);
+    });
+
+    ["dragenter", "dragover"].forEach((eventName) => {
+      uploadContainer.addEventListener(eventName, highlight, false);
+    });
+
+    ["dragleave", "drop"].forEach((eventName) => {
+      uploadContainer.addEventListener(eventName, unhighlight, false);
+    });
+
+    uploadContainer.addEventListener("drop", handleDrop, false);
+
+    // Prevent default behaviors for drag events
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    // Add highlight class on drag over
+    function highlight() {
+      uploadContainer.classList.add("dragging");
+    }
+
+    // Remove highlight class on drag leave
+    function unhighlight() {
+      uploadContainer.classList.remove("dragging");
+    }
+
+    // Handle file drop
+    function handleDrop(e) {
+      const files = e.dataTransfer.files;
+      if (files.length) {
+        fileInput.files = files;
+        handleFileSelect({ target: { files } });
+      }
+    }
+
+    // --------------- HEIC to JPEG Converter ---------------
+    const HEICConverter = (function () {
+      // Check if browser supports OffscreenCanvas
+      const supportsOffscreenCanvas = typeof OffscreenCanvas !== "undefined";
+
+      // Convert HEIC/HEIF to JPEG
+      async function convertHEICToJPEG(heicBlob) {
+        return new Promise(async (resolve, reject) => {
+          try {
+            // Create URL for the HEIC blob
+            const url = URL.createObjectURL(heicBlob);
+
+            // Create an image element to hold the image data
+            const img = document.createElement("img");
+
+            // Set up error handling - Safari and older browsers might not support HEIC
+            img.onerror = function () {
+              URL.revokeObjectURL(url);
+              reject(
+                new Error(
+                  "Browser cannot decode HEIC format. Try converting to JPEG first.",
+                ),
+              );
+            };
+
+            // When image loads successfully
+            img.onload = function () {
+              URL.revokeObjectURL(url);
+
+              // Create canvas to draw the image
+              const canvas = supportsOffscreenCanvas
+                ? new OffscreenCanvas(img.width, img.height)
+                : document.createElement("canvas");
+
+              canvas.width = img.width;
+              canvas.height = img.height;
+
+              // Draw image to canvas
+              const ctx = canvas.getContext("2d");
+              ctx.drawImage(img, 0, 0);
+
+              // Convert to JPEG blob
+              if (supportsOffscreenCanvas) {
+                canvas
+                  .convertToBlob({ type: "image/jpeg", quality: 0.92 })
+                  .then(resolve)
+                  .catch(reject);
+              } else {
+                canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.92);
+              }
+            };
+
+            // Try to load the image - this will work in Safari and iOS browsers
+            // which natively support HEIC
+            img.src = url;
+          } catch (error) {
+            reject(error);
+          }
+        });
+      }
+
+      // Detect if a file is a HEIC/HEIF image
+      function isHEICImage(file) {
+        console.debug(file);
+        return (
+          file.type === "image/heic" ||
+          file.type === "image/heif" ||
+          file.name.toLowerCase().endsWith(".heic") ||
+          file.name.toLowerCase().endsWith(".heif")
+        );
+      }
+
+      return {
+        convertHEICToJPEG,
+        isHEICImage,
+      };
+    })();
+
+    // Handle file selection from input
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      console.debug("file", file);
+
+      // Check if file is an image
+      if (!file.type.match("image.*") && !HEICConverter.isHEICImage(file)) {
+        showStatus("Please select an image file.", "error");
+        return;
+      }
+
+      originalFileName = file.name;
+      showLoading(true);
+
+      // Check if the file is a HEIC/HEIF file
+      if (HEICConverter.isHEICImage(file)) {
+        showStatus("Converting HEIC image...", "info");
+
+        // Convert HEIC to JPEG
+        HEICConverter.convertHEICToJPEG(file)
+          .then((convertedBlob) => {
+            // Process the converted image
+            processImage(convertedBlob, originalFileName);
+          })
+          .catch((err) => {
+            console.error("HEIC conversion error:", err);
+            showStatus(
+              "Error converting HEIC image. Your browser may not support HEIC format natively.",
+              "error",
+            );
+            showLoading(false);
+          });
+      } else {
+        // Process regular image formats
+        processImage(file, originalFileName);
+      }
+    }
+
+    function processImage(file, originalName) {
+      // Read the image for preview
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        imagePreview.src = event.target.result;
+
+        // Extract EXIF data
+        const img = new Image();
+        img.onload = function () {
+          // Process the image
+          EXIF.getData(img, function () {
+            const allTags = EXIF.getAllTags(this);
+            hasExifData = Object.keys(allTags).length > 0;
+
+            // Display EXIF information
+            let exifText = "";
+            if (hasExifData) {
+              exifText +=
+                "<strong>Original image contains metadata:</strong><br>";
+              exifText += `
+                                <ul style="margin-left: 16px; margin-top: 6px;">
+                                    ${allTags.Make ? `<li>Camera: ${allTags.Make} ${allTags.Model || ""}</li>` : ""}
+                                    ${allTags.DateTime ? `<li>Date Taken: ${allTags.DateTime}</li>` : ""}
+                                    ${allTags.GPSLatitude ? "<li>GPS Location Data</li>" : ""}
+                                    ${allTags.Software ? `<li>Software: ${allTags.Software}</li>` : ""}
+                                    ${allTags.Artist ? `<li>Artist: ${allTags.Artist}</li>` : ""}
+                                    ${Object.keys(allTags).length > 0 ? `<li>+ ${Object.keys(allTags).length} metadata items</li>` : ""}
+                                </ul>
+                            `;
+              exifText += "<strong>All metadata will be removed.</strong>";
+            } else {
+              exifText =
+                "<strong>No metadata found in this image.</strong><br>The image will be processed anyway to ensure clean output.";
+            }
+
+            exifInfo.innerHTML = exifText;
+
+            // Clean the image (remove EXIF data)
+            cleanImage(img);
+          });
+        };
+        img.src = event.target.result;
+      };
+
+      reader.readAsDataURL(file);
+    }
+
+    // Clean the image by removing EXIF data
+    function cleanImage(image) {
+      const canvas = document.createElement("canvas");
+      canvas.width = image.width;
+      canvas.height = image.height;
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(image, 0, 0);
+
+      // Convert the canvas to a clean Blob (JPEG without EXIF)
+      canvas.toBlob(
+        function (blob) {
+          cleanedImageBlob = blob;
+
+          // Show the preview
+          uploadContainer.style.display = "none";
+          previewContainer.style.display = "flex";
+
+          if (hasExifData) {
+            showStatus(
+              "Metadata successfully removed! Your image is now clean.",
+              "success",
+            );
+          } else {
+            showStatus(
+              "Image processed! No metadata was found, but your image is clean.",
+              "info",
+            );
+          }
+
+          showLoading(false);
+        },
+        "image/jpeg",
+        0.92,
+      );
+    }
+
+    // Download the cleaned image
+    function downloadCleanedImage() {
+      if (!cleanedImageBlob) {
+        showStatus("No processed image available.", "error");
+        return;
+      }
+
+      // Create filename with _clean suffix
+      const filenameParts = originalFileName.split(".");
+      const extension = filenameParts.pop().toLowerCase();
+      const basename = filenameParts.join(".");
+
+      // Always save as JPEG if it was originally HEIC/HEIF
+      const newExtension =
+        extension === "heic" || extension === "heif" ? "jpg" : extension;
+      const cleanFilename = `${basename}_clean.${newExtension}`;
+
+      const url = URL.createObjectURL(cleanedImageBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = cleanFilename;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+
+      showStatus("Image downloaded successfully!", "success");
+    }
+
+    // Reset the application state to accept a new image
+    function resetApp() {
+      uploadContainer.style.display = "flex";
+      previewContainer.style.display = "none";
+      imagePreview.src = "";
+      exifInfo.textContent = "";
+      statusMessage.style.display = "none";
+      fileInput.value = "";
+      cleanedImageBlob = null;
+      originalFileName = "";
+      hasExifData = false;
+    }
+
+    // Show status message
+    function showStatus(message, type = "info") {
+      statusMessage.textContent = message;
+      statusMessage.className = "status"; // Reset classes
+      statusMessage.classList.add(`status-${type}`);
+      statusMessage.style.display = "block";
+
+      // Auto hide after 5 seconds
+      setTimeout(() => {
+        statusMessage.style.display = "none";
+      }, 5000);
+    }
+
+    // Show/hide loading indicator
+    function showLoading(show) {
+      loadingIndicator.style.display = show ? "block" : "none";
+    }
+  </script>
+</html>
