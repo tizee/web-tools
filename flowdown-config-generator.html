@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowDown Enterprise Configuration Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #e0e0e0;
+            background-color: #1e1e1e;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: #f5f5f5;
+        }
+        .notice {
+            background-color: #2d2d2d;
+            border-left: 4px solid #0d6efd;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+        form {
+            background-color: #2d2d2d;
+            padding:.75rem 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            border: 1px solid #444;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+            color: #f0f0f0;
+        }
+        .field-description {
+            display: block;
+            font-size: 0.8rem;
+            color: #a0a0a0;
+            margin-bottom: 0.5rem;
+            font-style: italic;
+        }
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #555;
+            border-radius: 3px;
+            box-sizing: border-box;
+            font-family: inherit;
+            background-color: #383838;
+            color: #e0e0e0;
+        }
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="date"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+        }
+        .input-with-button {
+            display: flex;
+            gap: 10px;
+        }
+        .input-with-button input {
+            flex: 1;
+        }
+        .small-button {
+            padding: 0.5rem;
+            background-color: #495057;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .small-button:hover {
+            background-color: #5c636a;
+        }
+        .checkbox-group {
+            margin-top: 0.5rem;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.25rem;
+            font-weight: normal;
+            color: #d0d0d0;
+        }
+        input[type="checkbox"] {
+            margin-right: 0.5rem;
+            accent-color: #0d6efd;
+        }
+        button {
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        button:hover {
+            background-color: #0b5ed7;
+        }
+        #resultArea {
+            background-color: #252525;
+            border: 1px solid #444;
+            border-radius: 3px;
+            padding: 1rem;
+            white-space: pre-wrap;
+            font-family: monospace;
+            margin-bottom: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            color: #d0d0d0;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>FlowDown Enterprise Configuration Generator</h1>
+
+    <div class="notice">
+        <p><strong>Note:</strong></p>
+        <ol>
+            <li><strong>Required Fields:</strong> All parameter fields must be retained in the configuration file, even if you do not need to modify some fields. Some fields support the use of empty strings or empty sets.</li>
+            <li><strong>File Format:</strong> The configuration file must conform to the PropertyList format, supporting binary or XML formats.</li>
+            <li><strong>Compatibility Requirements:</strong> Custom API endpoints must be compatible with FlowDown's request format, including input parameter structure and return format.</li>
+        </ol>
+    </div>
+
+    <form id="configForm">
+        <div class="form-group">
+            <label for="id">ID (UUID format recommended):</label>
+            <span class="field-description">Unique identifier for the model configuration. You can enter your own or generate a random UUID.</span>
+            <div class="input-with-button">
+                <input type="text" id="id" name="id" required>
+                <button type="button" id="generateUuidBtn" class="small-button">Generate UUID</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="model_identifier">Model Identifier:</label>
+            <span class="field-description">Unique name used for API calls to identify this model (e.g., "openai-large", "anthropic-haiku").</span>
+            <input type="text" id="model_identifier" name="model_identifier" required>
+        </div>
+
+        <div class="form-group">
+            <label for="model_list_endpoint">Model List Endpoint:</label>
+            <span class="field-description">API endpoint for retrieving the list of available models. $INFERENCE_ENDPOINT$ will be replaced with your endpoint URL.</span>
+            <input type="text" id="model_list_endpoint" name="model_list_endpoint" value="$INFERENCE_ENDPOINT$/../../models" required>
+        </div>
+
+        <div class="form-group">
+            <label for="endpoint">Endpoint URL:</label>
+            <span class="field-description">Main API endpoint for model inference, should include the complete path including /v1/chat/completions suffix.</span>
+            <input type="text" id="endpoint" name="endpoint" placeholder="https://example.com/v1/chat/completions" required>
+        </div>
+
+        <div class="form-group">
+            <label for="token">Access Token/Key (can be empty):</label>
+            <span class="field-description">Authentication token or API key for the service. Can be left empty if authentication is not needed.</span>
+            <input type="text" id="token" name="token">
+        </div>
+
+        <div class="form-group">
+            <label>Capabilities:</label>
+            <span class="field-description">Features supported by the model. Select the capabilities this model provides.</span>
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="capabilities" value="visual"> Visual
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" name="capabilities" value="tool"> Tool
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="context">Context Window Length:</label>
+            <span class="field-description">Maximum number of tokens the model can process in a single request.</span>
+            <select id="context" name="context" required>
+                <option value="4000">Short (4K)</option>
+                <option value="8000">Short (8K)</option>
+                <option value="16000">Medium (16K)</option>
+                <option value="32000">Medium (32K)</option>
+                <option value="64000">Medium (64K)</option>
+                <option value="100000">Long (100K)</option>
+                <option value="200000">Long (200K)</option>
+                <option value="1000000">Huge (1M)</option>
+                <option value="2147483647">Infinity</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="isProfileInControl">Is Profile In Control:</label>
+            <span class="field-description">Controls whether FlowDown displays warning prompts to users about this configuration.</span>
+            <select id="isProfileInControl" name="isProfileInControl" required>
+                <option value="true">True</option>
+                <option value="false">False</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="comment">Comment (can be empty):</label>
+            <span class="field-description">Optional notes about this configuration (not displayed in the FlowDown interface).</span>
+            <input type="text" id="comment" name="comment">
+        </div>
+
+        <button type="button" id="generateBtn">Generate Configuration</button>
+    </form>
+
+    <div id="resultContainer" class="hidden">
+        <h2>Generated Configuration:</h2>
+        <div id="resultArea"></div>
+        <button id="downloadBtn">Download XML</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            /**
+             * Generate an RFC4122 version 4 compliant UUID
+             * This implementation follows the specification more precisely
+             * @returns {string} A randomly generated UUID
+             */
+            function generateUUID() {
+                // Create array of random bytes
+                const randomBytes = new Uint8Array(16);
+                crypto.getRandomValues(randomBytes);
+
+                // Set the version (4) and variant bits according to RFC4122
+                randomBytes[6] = (randomBytes[6] & 0x0f) | 0x40; // version 4
+                randomBytes[8] = (randomBytes[8] & 0x3f) | 0x80; // variant 1
+
+                // Format the UUID string
+                let uuid = '';
+                for (let i = 0; i < 16; i++) {
+                    // Add hyphens at positions 4, 6, 8, and 10
+                    if (i === 4 || i === 6 || i === 8 || i === 10) {
+                        uuid += '-';
+                    }
+
+                    // Convert byte to hex and pad with zero if needed
+                    uuid += randomBytes[i].toString(16).padStart(2, '0');
+                }
+
+                return uuid.toUpperCase();
+            }
+
+            // Populate the ID field with a random UUID
+            document.getElementById('id').value = generateUUID();
+
+            // Add event listener for the generate UUID button
+            document.getElementById('generateUuidBtn').addEventListener('click', function() {
+                document.getElementById('id').value = generateUUID();
+            });
+
+            // Set the creation date to the current date in ISO format
+            const now = new Date();
+
+            document.getElementById('generateBtn').addEventListener('click', function() {
+                // Collect form data
+                const id = document.getElementById('id').value;
+                const model_identifier = document.getElementById('model_identifier').value;
+                const model_list_endpoint = document.getElementById('model_list_endpoint').value;
+                const endpoint = document.getElementById('endpoint').value;
+                const token = document.getElementById('token').value;
+                const context = document.getElementById('context').value;
+                const isProfileInControl = document.getElementById('isProfileInControl').value;
+                const comment = document.getElementById('comment').value;
+
+                // Get selected capabilities
+                const capabilitiesElements = document.querySelectorAll('input[name="capabilities"]:checked');
+                const capabilities = Array.from(capabilitiesElements).map(el => el.value);
+
+                // Format the current date in ISO format
+                const formattedDate = now.toISOString().replace(/\.\d+/, '');
+
+                // Generate XML
+                const xmlContent = generateXML(id, model_identifier, model_list_endpoint, endpoint, token, capabilities, context, isProfileInControl, comment, formattedDate);
+
+                // Display the result
+                document.getElementById('resultArea').textContent = xmlContent;
+                document.getElementById('resultContainer').classList.remove('hidden');
+            });
+
+            document.getElementById('downloadBtn').addEventListener('click', function() {
+                const xmlContent = document.getElementById('resultArea').textContent;
+                const blob = new Blob([xmlContent], { type: 'application/xml' });
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'FlowDown-EnterpriseConfig.xml';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            function generateXML(id, model_identifier, model_list_endpoint, endpoint, token, capabilities, context, isProfileInControl, comment, creationDate) {
+                let capabilitiesXml = '';
+
+                if (capabilities.length > 0) {
+                    capabilitiesXml = capabilities.map(cap => `\t\t<string>${cap}</string>`).join('\n');
+                }
+
+                return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+\t<key>capabilities</key>
+\t<array>
+${capabilitiesXml}
+\t</array>
+\t<key>comment</key>
+\t<string>${comment}</string>
+\t<key>context</key>
+\t<integer>${context}</integer>
+\t<key>creation</key>
+\t<date>${creationDate}</date>
+\t<key>endpoint</key>
+\t<string>${endpoint}</string>
+\t<key>id</key>
+\t<string>${id}</string>
+\t<key>isProfileInControl</key>
+\t<${isProfileInControl}/>
+\t<key>model_identifier</key>
+\t<string>${model_identifier}</string>
+\t<key>model_list_endpoint</key>
+\t<string>${model_list_endpoint}</string>
+\t<key>token</key>
+\t<string>${token}</string>
+</dict>
+</plist>`;
+            }
+        });
+    </script>
+</body>
+</html>
