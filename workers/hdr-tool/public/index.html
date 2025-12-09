@@ -1,0 +1,2874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumina HDR — Transform Your Images</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            /* Deep cinematic dark palette */
+            --bg-primary: #0a0a0c;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a24;
+            --bg-elevated: #22222e;
+
+            /* Accent colors - HDR-inspired vibrant spectrum */
+            --accent-primary: #00d4aa;
+            --accent-secondary: #ff6b9d;
+            --accent-tertiary: #ffd93d;
+            --accent-glow: rgba(0, 212, 170, 0.3);
+
+            /* Text hierarchy */
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1aa;
+            --text-muted: #6b6b76;
+
+            /* Borders and surfaces */
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-active: rgba(0, 212, 170, 0.4);
+
+            /* Gradients */
+            --gradient-hero: linear-gradient(135deg, #0a0a0c 0%, #1a1a24 50%, #0f0f14 100%);
+            --gradient-card: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+            --gradient-accent: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+
+            /* Shadows */
+            --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --shadow-glow: 0 0 40px var(--accent-glow);
+
+            /* Spacing */
+            --space-xs: 0.25rem;
+            --space-sm: 0.5rem;
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+            --space-xl: 2rem;
+            --space-2xl: 3rem;
+
+            /* Border radius */
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --radius-xl: 28px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, sans-serif;
+            background: var(--gradient-hero);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Noise texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* Header */
+        header {
+            padding: var(--space-lg) var(--space-xl);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-subtle);
+            backdrop-filter: blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 10, 12, 0.8);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--gradient-accent);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .logo-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 500;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-text span {
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-badge {
+            padding: var(--space-xs) var(--space-md);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 100px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* Main container */
+        main {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: var(--space-xl);
+        }
+
+        /* Hero section */
+        .hero {
+            text-align: center;
+            padding: var(--space-2xl) 0;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 500;
+            margin-bottom: var(--space-md);
+            letter-spacing: -0.02em;
+        }
+
+        .hero h1 .highlight {
+            position: relative;
+            display: inline-block;
+        }
+
+        .hero h1 .highlight::after {
+            content: '';
+            position: absolute;
+            bottom: 0.1em;
+            left: 0;
+            right: 0;
+            height: 0.35em;
+            background: var(--gradient-accent);
+            opacity: 0.3;
+            z-index: -1;
+            border-radius: 2px;
+        }
+
+        .hero p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Upload zone */
+        .upload-zone {
+            background: var(--bg-secondary);
+            border: 2px dashed var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: var(--space-xl);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--gradient-card);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .upload-zone:hover::before {
+            opacity: 1;
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--accent-primary);
+            background: var(--bg-tertiary);
+            box-shadow: var(--shadow-glow);
+            transform: scale(1.01);
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto var(--space-lg);
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .upload-icon svg {
+            width: 32px;
+            height: 32px;
+            stroke: var(--accent-primary);
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        .upload-zone h3 {
+            font-weight: 500;
+            margin-bottom: var(--space-sm);
+            position: relative;
+            z-index: 1;
+        }
+
+        .upload-zone p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .upload-zone input {
+            display: none;
+        }
+
+        /* Editor container */
+        .editor {
+            display: none;
+            gap: var(--space-xl);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .editor.active {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+        }
+
+        @media (max-width: 1024px) {
+            .editor.active {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Comparison container */
+        .comparison-container {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .comparison-header {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--space-md) var(--space-lg);
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .comparison-label {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .comparison-label .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .comparison-label.original .dot {
+            background: var(--text-muted);
+        }
+
+        .comparison-label.hdr .dot {
+            background: var(--accent-primary);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .comparison-wrapper {
+            position: relative;
+            aspect-ratio: 16/10;
+            background: var(--bg-primary);
+            overflow: hidden;
+        }
+
+        .comparison-wrapper canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #originalCanvas {
+            z-index: 1;
+        }
+
+        #hdrCanvas {
+            z-index: 2;
+            clip-path: inset(0 50% 0 0);
+        }
+
+        /* Slider divider */
+        .slider-divider {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 4px;
+            background: var(--text-primary);
+            z-index: 10;
+            cursor: ew-resize;
+            transform: translateX(-50%);
+            transition: background 0.2s ease;
+        }
+
+        .slider-divider:hover {
+            background: var(--accent-primary);
+        }
+
+        .slider-handle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 44px;
+            height: 44px;
+            background: var(--bg-primary);
+            border: 2px solid var(--text-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: ew-resize;
+            transition: all 0.2s ease;
+        }
+
+        .slider-handle:hover {
+            border-color: var(--accent-primary);
+            box-shadow: var(--shadow-glow);
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        .slider-handle svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--text-primary);
+        }
+
+        /* Controls panel */
+        .controls-panel {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-subtle);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .controls-header {
+            padding: var(--space-lg);
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .controls-header h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: var(--space-xs);
+        }
+
+        .controls-header p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .controls-body {
+            padding: var(--space-lg);
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .control-group {
+            margin-bottom: var(--space-lg);
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-sm);
+        }
+
+        .control-label span {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .control-value {
+            font-size: 0.8rem;
+            color: var(--accent-primary);
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Custom range slider */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 212, 170, 0.4);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 16px rgba(0, 212, 170, 0.6);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: var(--accent-primary);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* Preset buttons */
+        .presets {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-sm);
+            margin-bottom: var(--space-lg);
+        }
+
+        .preset-btn {
+            padding: var(--space-sm) var(--space-md);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .preset-btn:hover {
+            background: var(--bg-elevated);
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+        }
+
+        .preset-btn.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: var(--bg-primary);
+            font-weight: 500;
+        }
+
+        /* Action buttons */
+        .controls-footer {
+            padding: var(--space-lg);
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .btn {
+            padding: var(--space-md) var(--space-lg);
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+        }
+
+        .btn-primary {
+            background: var(--gradient-accent);
+            border: none;
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-secondary);
+            color: var(--text-primary);
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: var(--border-subtle);
+            margin: var(--space-md) 0;
+        }
+
+        /* Processing indicator */
+        .processing {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 12, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .processing.active {
+            display: flex;
+        }
+
+        .processing-content {
+            text-align: center;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--bg-tertiary);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto var(--space-lg);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            header {
+                padding: var(--space-md);
+            }
+
+            main {
+                padding: var(--space-md);
+            }
+
+            .hero {
+                padding: var(--space-lg) 0;
+            }
+
+            .upload-zone {
+                padding: var(--space-xl);
+            }
+
+            .presets {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ============================================
+           MASK FUNCTIONALITY STYLES
+           ============================================ */
+
+        /* Mask Section */
+        .mask-section {
+            margin-bottom: var(--space-md);
+        }
+
+        .mask-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-sm);
+        }
+
+        /* Toggle Switch */
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .toggle-label input {
+            display: none;
+        }
+
+        .toggle-switch {
+            width: 44px;
+            height: 24px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            position: relative;
+            transition: background 0.2s ease;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-label input:checked + .toggle-switch {
+            background: var(--accent-primary);
+        }
+
+        .toggle-label input:checked + .toggle-switch::after {
+            transform: translateX(20px);
+            background: var(--bg-primary);
+        }
+
+        /* Small toggle variant for secondary options */
+        .toggle-label.toggle-small {
+            font-size: 0.8rem;
+        }
+
+        .toggle-label.toggle-small .toggle-switch {
+            width: 36px;
+            height: 20px;
+            border-radius: 10px;
+        }
+
+        .toggle-label.toggle-small .toggle-switch::after {
+            width: 14px;
+            height: 14px;
+        }
+
+        .toggle-label.toggle-small input:checked + .toggle-switch::after {
+            transform: translateX(16px);
+        }
+
+        /* Help Button */
+        .help-btn {
+            width: 28px;
+            height: 28px;
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            border-radius: 50%;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .help-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .help-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Mask Controls Container */
+        .mask-controls {
+            display: none;
+            flex-direction: column;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-md);
+            margin-top: var(--space-sm);
+        }
+
+        .mask-controls.active {
+            display: flex;
+        }
+
+        /* Tool Buttons Row */
+        .mask-tools {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .tool-btn {
+            width: 36px;
+            height: 36px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .tool-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+        }
+
+        .tool-btn.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+
+        .tool-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .tool-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border-subtle);
+            margin: 0 var(--space-xs);
+        }
+
+        /* Brush Size Control */
+        .brush-size-control {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            flex: 1;
+        }
+
+        .brush-size-control .size-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .brush-size-control input[type="range"] {
+            flex: 1;
+            height: 4px;
+        }
+
+        .brush-size-control .size-value {
+            font-size: 0.75rem;
+            color: var(--accent-primary);
+            width: 24px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Mask Action Buttons */
+        .mask-actions {
+            display: flex;
+            gap: var(--space-sm);
+            flex-wrap: wrap;
+        }
+
+        .mask-action-btn {
+            padding: var(--space-xs) var(--space-sm);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .mask-action-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+        }
+
+        .mask-action-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Mask Canvas Layers */
+        #maskCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            display: none;
+        }
+
+        #maskOverlayCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 15;
+            pointer-events: none;
+            opacity: 0.5;
+            display: none;
+        }
+
+        /* Drawing cursor when mask mode is active */
+        .comparison-wrapper.mask-drawing {
+            cursor: crosshair;
+        }
+
+        .comparison-wrapper.mask-drawing #maskOverlayCanvas {
+            pointer-events: auto;
+        }
+
+        /* Brush cursor indicator */
+        .brush-cursor {
+            position: absolute;
+            border: 2px solid var(--accent-primary);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 20;
+            display: none;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+        }
+
+        .brush-cursor.eraser {
+            border-color: var(--accent-secondary);
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+        }
+
+        .comparison-wrapper.mask-drawing .brush-cursor {
+            display: block;
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 12, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            max-width: 560px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: hidden;
+            animation: fadeInUp 0.3s ease-out;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-lg);
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .modal-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: var(--space-lg);
+            overflow-y: auto;
+            max-height: calc(80vh - 70px);
+        }
+
+        .modal-body h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin: var(--space-lg) 0 var(--space-sm);
+            color: var(--accent-primary);
+        }
+
+        .modal-body h4:first-child {
+            margin-top: 0;
+        }
+
+        .modal-body p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-sm);
+            line-height: 1.6;
+        }
+
+        .modal-body ul, .modal-body ol {
+            margin: var(--space-sm) 0;
+            padding-left: var(--space-lg);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .modal-body li {
+            margin-bottom: var(--space-xs);
+            line-height: 1.5;
+        }
+
+        .modal-body .tip {
+            background: rgba(0, 212, 170, 0.1);
+            border-left: 3px solid var(--accent-primary);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            margin-top: var(--space-md);
+        }
+
+        /* Cursor tool active state - same as other tools */
+        .tool-btn.cursor-mode {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+
+        /* Cursor mode indicator */
+        .comparison-wrapper.cursor-mode {
+            cursor: default;
+        }
+
+        .comparison-wrapper.cursor-mode #maskOverlayCanvas {
+            pointer-events: none;
+        }
+
+        .comparison-wrapper.cursor-mode .brush-cursor {
+            display: none !important;
+        }
+
+        .comparison-wrapper.cursor-mode .slider-divider {
+            display: block !important;
+        }
+
+        /* ============================================
+           HOW IT WORKS SECTION STYLES
+           ============================================ */
+
+        .how-it-works {
+            margin-top: var(--space-2xl);
+            padding: var(--space-2xl) 0;
+            position: relative;
+        }
+
+        .how-it-works::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100vw;
+            right: -100vw;
+            bottom: 0;
+            background: linear-gradient(180deg,
+                transparent 0%,
+                rgba(0, 212, 170, 0.02) 20%,
+                rgba(0, 212, 170, 0.04) 50%,
+                rgba(0, 212, 170, 0.02) 80%,
+                transparent 100%
+            );
+            z-index: -1;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: var(--space-2xl);
+            position: relative;
+        }
+
+        .section-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            font-weight: 400;
+            background: linear-gradient(180deg, var(--accent-primary) 0%, transparent 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            opacity: 0.3;
+            position: absolute;
+            top: -2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: -1;
+            line-height: 1;
+        }
+
+        .section-header h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            margin-bottom: var(--space-sm);
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* Process Cards Grid */
+        .process-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--space-lg);
+            margin-bottom: var(--space-2xl);
+        }
+
+        .process-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .process-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .process-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-active);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .process-card:hover::before {
+            opacity: 1;
+        }
+
+        .process-card.featured {
+            border-color: var(--border-active);
+            background: linear-gradient(180deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+        }
+
+        .process-card.featured .card-glow {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, var(--accent-glow) 0%, transparent 60%);
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .card-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            font-weight: 400;
+            color: var(--bg-tertiary);
+            position: absolute;
+            top: var(--space-md);
+            right: var(--space-lg);
+            line-height: 1;
+            opacity: 0.5;
+        }
+
+        .card-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-elevated) 100%);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: var(--space-lg);
+            position: relative;
+        }
+
+        .card-icon::after {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: var(--radius-md);
+            background: var(--gradient-accent);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .process-card:hover .card-icon::after {
+            opacity: 1;
+        }
+
+        .card-icon svg {
+            width: 28px;
+            height: 28px;
+            stroke: var(--accent-primary);
+        }
+
+        .process-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: var(--space-sm);
+            color: var(--text-primary);
+        }
+
+        .process-card p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: var(--space-md);
+        }
+
+        .card-tag {
+            display: inline-block;
+            padding: var(--space-xs) var(--space-sm);
+            background: var(--bg-tertiary);
+            border-radius: 100px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .card-tag.highlight {
+            background: rgba(0, 212, 170, 0.15);
+            color: var(--accent-primary);
+        }
+
+        /* Pipeline Section */
+        .pipeline-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            margin-bottom: var(--space-2xl);
+            overflow: hidden;
+        }
+
+        .pipeline-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-md);
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: var(--space-xl);
+        }
+
+        .title-decorator {
+            width: 60px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-subtle), transparent);
+        }
+
+        .mermaid-container {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            overflow-x: auto;
+        }
+
+        /* Mermaid Theme Override */
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+
+        .mermaid svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Tech Specs Bar */
+        .tech-specs {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-lg);
+            padding: var(--space-lg);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+        }
+
+        .spec-item {
+            text-align: center;
+            padding: 0 var(--space-lg);
+        }
+
+        .spec-value {
+            display: block;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.75rem;
+            font-weight: 500;
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+        }
+
+        .spec-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .spec-divider {
+            width: 1px;
+            height: 40px;
+            background: var(--border-subtle);
+        }
+
+        @media (max-width: 768px) {
+            .process-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tech-specs {
+                flex-direction: column;
+                gap: var(--space-md);
+            }
+
+            .spec-divider {
+                width: 60px;
+                height: 1px;
+            }
+
+            .spec-item {
+                padding: var(--space-sm) 0;
+            }
+
+            .mermaid-container {
+                padding: var(--space-md);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <div class="logo-icon">L</div>
+            <div class="logo-text">Lumina <span>HDR</span></div>
+        </div>
+        <div class="header-badge">Client-Side Processing</div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <h1>Transform Photos into <span class="highlight">HDR</span></h1>
+            <p>Instantly boost brightness, contrast, and color depth for High Dynamic Range displays. Pure client-side processing—your images never leave your device.</p>
+        </section>
+
+        <div class="upload-zone" id="uploadZone">
+            <div class="upload-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+            </div>
+            <h3>Drop your image here</h3>
+            <p>or click to browse • Supports JPG, PNG, WebP</p>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <div class="editor" id="editor">
+            <div class="comparison-container">
+                <div class="comparison-header">
+                    <div class="comparison-label original">
+                        <span class="dot"></span>
+                        Original
+                    </div>
+                    <div class="comparison-label hdr">
+                        <span class="dot"></span>
+                        HDR Enhanced
+                    </div>
+                </div>
+                <div class="comparison-wrapper" id="comparisonWrapper">
+                    <canvas id="originalCanvas"></canvas>
+                    <canvas id="hdrCanvas"></canvas>
+                    <canvas id="maskCanvas"></canvas>
+                    <canvas id="maskOverlayCanvas"></canvas>
+                    <div class="brush-cursor" id="brushCursor"></div>
+                    <div class="slider-divider" id="sliderDivider">
+                        <div class="slider-handle">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M18 8L22 12L18 16M6 8L2 12L6 16" stroke="currentColor" stroke-width="2" fill="none"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-panel">
+                <div class="controls-header">
+                    <h2>HDR Adjustments</h2>
+                    <p>Fine-tune the enhancement parameters</p>
+                </div>
+
+                <div class="controls-body">
+                    <div class="presets">
+                        <button class="preset-btn" data-preset="subtle">Subtle</button>
+                        <button class="preset-btn active" data-preset="balanced">Balanced</button>
+                        <button class="preset-btn" data-preset="vivid">Vivid</button>
+                        <button class="preset-btn" data-preset="dramatic">Dramatic</button>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Mask Section -->
+                    <div class="mask-section">
+                        <div class="mask-toggle-row">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="maskEnabled">
+                                <span class="toggle-switch"></span>
+                                <span>Enable Mask</span>
+                            </label>
+                            <button class="help-btn" id="maskHelpBtn" title="Mask Help">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="mask-controls" id="maskControls">
+                            <div class="mask-tools">
+                                <button class="tool-btn active" id="brushTool" title="Brush (B)">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+                                        <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+                                    </svg>
+                                </button>
+                                <button class="tool-btn" id="eraserTool" title="Eraser (E)">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8l10-10c.8-.8 2-.8 2.8 0l7 7c.8.8.8 2 0 2.8L14 22"/>
+                                    </svg>
+                                </button>
+                                <button class="tool-btn" id="cursorTool" title="Cursor Mode (C) - Drag Slider">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M4 4l7.07 17 2.51-7.39L21 11.07 4 4z"/>
+                                        <path d="M13 13l6 6"/>
+                                    </svg>
+                                </button>
+                                <div class="tool-divider"></div>
+                                <div class="brush-size-control">
+                                    <span class="size-label">Size</span>
+                                    <input type="range" id="brushSize" min="5" max="100" value="30">
+                                    <span class="size-value" id="brushSizeValue">30</span>
+                                </div>
+                            </div>
+
+                            <div class="mask-actions">
+                                <button class="mask-action-btn" id="uploadMaskBtn">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="17 8 12 3 7 8"/>
+                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                    </svg>
+                                    Upload
+                                </button>
+                                <button class="mask-action-btn" id="clearMaskBtn">Clear</button>
+                                <button class="mask-action-btn" id="invertMaskBtn">Invert</button>
+                            </div>
+
+                            <input type="file" id="maskFileInput" accept="image/*" style="display: none;">
+
+                            <div class="control-group">
+                                <div class="control-label">
+                                    <span>Mask Feather</span>
+                                    <span class="control-value" id="maskFeatherValue">0</span>
+                                </div>
+                                <input type="range" id="maskFeather" min="0" max="50" value="0">
+                            </div>
+
+                            <label class="toggle-label toggle-small">
+                                <input type="checkbox" id="showMaskOverlay" checked>
+                                <span class="toggle-switch"></span>
+                                <span>Show Mask Overlay</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Exposure</span>
+                            <span class="control-value" id="exposureValue">0</span>
+                        </div>
+                        <input type="range" id="exposure" min="-100" max="100" value="0">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Contrast</span>
+                            <span class="control-value" id="contrastValue">20</span>
+                        </div>
+                        <input type="range" id="contrast" min="0" max="100" value="20">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Highlights</span>
+                            <span class="control-value" id="highlightsValue">-20</span>
+                        </div>
+                        <input type="range" id="highlights" min="-100" max="100" value="-20">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Shadows</span>
+                            <span class="control-value" id="shadowsValue">30</span>
+                        </div>
+                        <input type="range" id="shadows" min="-100" max="100" value="30">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Saturation</span>
+                            <span class="control-value" id="saturationValue">25</span>
+                        </div>
+                        <input type="range" id="saturation" min="-100" max="100" value="25">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Vibrance</span>
+                            <span class="control-value" id="vibranceValue">30</span>
+                        </div>
+                        <input type="range" id="vibrance" min="0" max="100" value="30">
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Clarity</span>
+                            <span class="control-value" id="clarityValue">15</span>
+                        </div>
+                        <input type="range" id="clarity" min="0" max="100" value="15">
+                    </div>
+                </div>
+
+                <div class="controls-footer">
+                    <button class="btn btn-primary" id="downloadBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Download HDR Image
+                    </button>
+                    <button class="btn btn-secondary" id="resetBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                            <path d="M3 3v5h5"/>
+                        </svg>
+                        Reset to Original
+                    </button>
+                    <button class="btn btn-secondary" id="newImageBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        New Image
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- How It Works Section -->
+        <section class="how-it-works" id="howItWorks">
+            <div class="section-header">
+                <span class="section-number">01</span>
+                <h2>How It Works</h2>
+                <p class="section-subtitle">Advanced client-side processing to unlock the hidden potential in your images</p>
+            </div>
+
+            <div class="process-grid">
+                <div class="process-card">
+                    <div class="card-glow"></div>
+                    <div class="card-number">1</div>
+                    <div class="card-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="2" y="3" width="20" height="14" rx="2"/>
+                            <path d="M8 21h8"/>
+                            <path d="M12 17v4"/>
+                            <path d="M7 8l3 3-3 3"/>
+                            <line x1="12" y1="14" x2="17" y2="14"/>
+                        </svg>
+                    </div>
+                    <h3>Client-Side Processing</h3>
+                    <p>Your photos never leave your device. All processing happens right in your browser using JavaScript Canvas API for maximum speed and privacy.</p>
+                    <div class="card-tag">100% Private</div>
+                </div>
+
+                <div class="process-card featured">
+                    <div class="card-glow"></div>
+                    <div class="card-number">2</div>
+                    <div class="card-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 2a10 10 0 0 1 0 20"/>
+                            <circle cx="12" cy="12" r="4"/>
+                            <path d="M12 8v-2"/>
+                            <path d="M12 18v-2"/>
+                            <path d="M8 12H6"/>
+                            <path d="M18 12h-2"/>
+                        </svg>
+                    </div>
+                    <h3>Color Space Expansion</h3>
+                    <p>We map your standard sRGB images into extended color ranges, significantly widening the visible color gamut through advanced tone mapping algorithms.</p>
+                    <div class="card-tag highlight">HDR Core</div>
+                </div>
+
+                <div class="process-card">
+                    <div class="card-glow"></div>
+                    <div class="card-number">3</div>
+                    <div class="card-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M3 3v18h18"/>
+                            <path d="M7 16l4-8 4 5 5-9"/>
+                        </svg>
+                    </div>
+                    <h3>Dynamic Range Enhancement</h3>
+                    <p>Separate control over highlights and shadows allows for smoother gradients and prevents color banding in bright and dark areas.</p>
+                    <div class="card-tag">Precision</div>
+                </div>
+            </div>
+
+            <div class="pipeline-section">
+                <h3 class="pipeline-title">
+                    <span class="title-decorator"></span>
+                    Processing Pipeline
+                    <span class="title-decorator"></span>
+                </h3>
+                <div class="mermaid-container">
+                    <div class="mermaid" id="pipelineDiagram">
+flowchart LR
+    subgraph INPUT["📷 Input"]
+        A[Original Image<br/>sRGB 8-bit]
+    end
+
+    subgraph PROCESS["⚡ Processing"]
+        B[Exposure<br/>Adjustment]
+        C[Tone Mapping<br/>Highlights/Shadows]
+        D[Contrast<br/>S-Curve]
+        E[HSL Transform<br/>Saturation/Vibrance]
+        F[Clarity<br/>Local Contrast]
+    end
+
+    subgraph MASK["🎭 Mask"]
+        G{Mask<br/>Enabled?}
+        H[Apply Mask<br/>Blend]
+    end
+
+    subgraph OUTPUT["✨ Output"]
+        I[HDR Enhanced<br/>Image]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G -->|Yes| H
+    G -->|No| I
+    H --> I
+                    </div>
+                </div>
+            </div>
+
+            <div class="tech-specs">
+                <div class="spec-item">
+                    <span class="spec-value">0ms</span>
+                    <span class="spec-label">Server Upload</span>
+                </div>
+                <div class="spec-divider"></div>
+                <div class="spec-item">
+                    <span class="spec-value">60fps</span>
+                    <span class="spec-label">Real-time Preview</span>
+                </div>
+                <div class="spec-divider"></div>
+                <div class="spec-item">
+                    <span class="spec-value">∞</span>
+                    <span class="spec-label">Privacy</span>
+                </div>
+                <div class="spec-divider"></div>
+                <div class="spec-item">
+                    <span class="spec-value">PNG</span>
+                    <span class="spec-label">Lossless Export</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div class="processing" id="processing">
+        <div class="processing-content">
+            <div class="spinner"></div>
+            <p>Processing your image...</p>
+        </div>
+    </div>
+
+    <!-- Mask Help Modal -->
+    <div class="modal" id="maskHelpModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Using Masks</h3>
+                <button class="modal-close" id="closeMaskHelp">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h4>What is a Mask?</h4>
+                <p>A mask controls where the HDR effect is applied:</p>
+                <ul>
+                    <li><strong>White areas</strong> = HDR effect applied</li>
+                    <li><strong>Black areas</strong> = Original image preserved</li>
+                    <li><strong>Gray areas</strong> = Partial effect (blend)</li>
+                </ul>
+
+                <h4>Built-in Tools</h4>
+                <p>Use the <strong>Brush (B)</strong> to paint areas for HDR effect. Use the <strong>Eraser (E)</strong> to remove from the mask. These are best for simple selections.</p>
+
+                <h4>Importing Professional Masks</h4>
+                <p>For complex masks (hair, edges, detailed selections), create them in professional tools:</p>
+                <ol>
+                    <li><strong>Photoshop</strong>: Use Select &gt; Subject or Quick Selection, then save as grayscale PNG</li>
+                    <li><strong>GIMP</strong>: Use Fuzzy Select or Paths tool, export selection as grayscale</li>
+                    <li><strong>Photopea</strong> (free online): Same workflow as Photoshop</li>
+                    <li><strong>Remove.bg</strong>: For subject isolation, use the alpha channel</li>
+                </ol>
+
+                <h4>Creating a Mask Image</h4>
+                <ol>
+                    <li>Open your image in an editor</li>
+                    <li>Create a new layer filled with black</li>
+                    <li>Paint white on areas where you want HDR</li>
+                    <li>Export as PNG (grayscale or with alpha)</li>
+                    <li>Upload using "Upload" button</li>
+                </ol>
+
+                <p class="tip"><strong>Tip:</strong> The mask will be automatically scaled to match your image dimensions.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const editor = document.getElementById('editor');
+        const originalCanvas = document.getElementById('originalCanvas');
+        const hdrCanvas = document.getElementById('hdrCanvas');
+        const comparisonWrapper = document.getElementById('comparisonWrapper');
+        const sliderDivider = document.getElementById('sliderDivider');
+        const processing = document.getElementById('processing');
+
+        // Contexts
+        const originalCtx = originalCanvas.getContext('2d', { willReadFrequently: true });
+        const hdrCtx = hdrCanvas.getContext('2d', { willReadFrequently: true });
+
+        // Mask DOM Elements
+        const maskCanvas = document.getElementById('maskCanvas');
+        const maskOverlayCanvas = document.getElementById('maskOverlayCanvas');
+        const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
+        const maskOverlayCtx = maskOverlayCanvas.getContext('2d');
+        const brushCursor = document.getElementById('brushCursor');
+        const maskEnabledCheckbox = document.getElementById('maskEnabled');
+        const maskControls = document.getElementById('maskControls');
+        const brushTool = document.getElementById('brushTool');
+        const eraserTool = document.getElementById('eraserTool');
+        const cursorTool = document.getElementById('cursorTool');
+        const brushSizeInput = document.getElementById('brushSize');
+        const brushSizeValue = document.getElementById('brushSizeValue');
+        const uploadMaskBtn = document.getElementById('uploadMaskBtn');
+        const maskFileInput = document.getElementById('maskFileInput');
+        const clearMaskBtn = document.getElementById('clearMaskBtn');
+        const invertMaskBtn = document.getElementById('invertMaskBtn');
+        const maskFeatherInput = document.getElementById('maskFeather');
+        const maskFeatherValue = document.getElementById('maskFeatherValue');
+        const showMaskOverlayCheckbox = document.getElementById('showMaskOverlay');
+        const maskHelpBtn = document.getElementById('maskHelpBtn');
+        const maskHelpModal = document.getElementById('maskHelpModal');
+        const closeMaskHelp = document.getElementById('closeMaskHelp');
+
+        // State
+        let originalImageData = null;
+        let currentImage = null;
+        let sliderPosition = 50;
+        let isDragging = false;
+        let processTimeout = null;
+
+        // Mask State
+        let maskEnabled = false;
+        let maskImageData = null;
+        let currentTool = 'brush';
+        let cursorMode = false; // When true, allows slider dragging instead of mask painting
+        let brushSize = 30;
+        let isDrawingMask = false;
+        let lastMaskPoint = null;
+
+        // Controls
+        const controls = {
+            exposure: document.getElementById('exposure'),
+            contrast: document.getElementById('contrast'),
+            highlights: document.getElementById('highlights'),
+            shadows: document.getElementById('shadows'),
+            saturation: document.getElementById('saturation'),
+            vibrance: document.getElementById('vibrance'),
+            clarity: document.getElementById('clarity')
+        };
+
+        // Presets
+        const presets = {
+            subtle: { exposure: 5, contrast: 10, highlights: -10, shadows: 15, saturation: 10, vibrance: 15, clarity: 5 },
+            balanced: { exposure: 0, contrast: 20, highlights: -20, shadows: 30, saturation: 25, vibrance: 30, clarity: 15 },
+            vivid: { exposure: 10, contrast: 35, highlights: -30, shadows: 40, saturation: 45, vibrance: 50, clarity: 25 },
+            dramatic: { exposure: -5, contrast: 50, highlights: -50, shadows: 60, saturation: 35, vibrance: 60, clarity: 40 }
+        };
+
+        // File upload handling
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                loadImage(file);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) loadImage(file);
+        });
+
+        // Load image
+        function loadImage(file) {
+            processing.classList.add('active');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    currentImage = img;
+                    // Show editor first so container has dimensions
+                    uploadZone.style.display = 'none';
+                    editor.classList.add('active');
+                    // Use requestAnimationFrame to ensure layout is calculated
+                    requestAnimationFrame(() => {
+                        setupCanvases(img);
+                        processing.classList.remove('active');
+                        applyHDREffect();
+                    });
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Setup canvases
+        function setupCanvases(img) {
+            try {
+                // Get container dimensions - use reasonable defaults if not available
+                const containerWidth = comparisonWrapper.clientWidth;
+                const containerHeight = comparisonWrapper.clientHeight;
+
+                // Use fallback values if container isn't rendered yet
+                const maxWidth = containerWidth > 0 ? containerWidth : Math.min(800, window.innerWidth - 100);
+                const maxHeight = containerHeight > 0 ? containerHeight : 600;
+
+                let width = img.naturalWidth || img.width;
+                let height = img.naturalHeight || img.height;
+
+                // Ensure source image has valid dimensions
+                if (!width || !height || width <= 0 || height <= 0) {
+                    console.warn('Invalid image dimensions:', width, height);
+                    return;
+                }
+
+                // Scale down to fit container while maintaining aspect ratio
+                const scale = Math.min(1, maxWidth / width, maxHeight / height);
+                width = Math.floor(width * scale);
+                height = Math.floor(height * scale);
+
+                // Ensure minimum dimensions of 1px
+                width = Math.max(1, width);
+                height = Math.max(1, height);
+
+                // Set canvas dimensions
+                originalCanvas.width = width;
+                originalCanvas.height = height;
+                hdrCanvas.width = width;
+                hdrCanvas.height = height;
+
+                // Draw original image
+                originalCtx.drawImage(img, 0, 0, width, height);
+
+                // Get image data with validation
+                if (width > 0 && height > 0) {
+                    originalImageData = originalCtx.getImageData(0, 0, width, height);
+                }
+
+                // Update comparison wrapper aspect ratio
+                comparisonWrapper.style.aspectRatio = `${width}/${height}`;
+            } catch (err) {
+                console.error('Error in setupCanvases:', err);
+            }
+        }
+
+        // HDR Processing
+        function applyHDREffect() {
+            if (!originalImageData) return;
+
+            processing.classList.add('active');
+
+            // Use requestAnimationFrame for smoother processing
+            requestAnimationFrame(() => {
+                const imageData = new ImageData(
+                    new Uint8ClampedArray(originalImageData.data),
+                    originalImageData.width,
+                    originalImageData.height
+                );
+
+                const data = imageData.data;
+                const params = {
+                    exposure: parseFloat(controls.exposure.value) / 100,
+                    contrast: parseFloat(controls.contrast.value) / 100,
+                    highlights: parseFloat(controls.highlights.value) / 100,
+                    shadows: parseFloat(controls.shadows.value) / 100,
+                    saturation: parseFloat(controls.saturation.value) / 100,
+                    vibrance: parseFloat(controls.vibrance.value) / 100,
+                    clarity: parseFloat(controls.clarity.value) / 100
+                };
+
+                // Get mask data if enabled
+                const useMask = maskEnabled && maskImageData;
+                let processedMask = null;
+                if (useMask) {
+                    const feather = parseInt(maskFeatherInput.value);
+                    processedMask = feather > 0 ? applyMaskFeather(maskImageData, feather) : maskImageData.data;
+                }
+
+                // Process each pixel
+                for (let i = 0; i < data.length; i += 4) {
+                    // Get mask value (0-1, where 1 = full HDR effect)
+                    let maskValue = 1;
+                    if (useMask && processedMask) {
+                        maskValue = processedMask[i] / 255;
+                    }
+
+                    // Skip processing if mask is fully black (original preserved)
+                    if (maskValue < 0.01) continue;
+
+                    // Store original values for blending
+                    const origR = data[i];
+                    const origG = data[i + 1];
+                    const origB = data[i + 2];
+
+                    let r = data[i];
+                    let g = data[i + 1];
+                    let b = data[i + 2];
+
+                    // Convert to normalized values
+                    r /= 255;
+                    g /= 255;
+                    b /= 255;
+
+                    // Calculate luminance
+                    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                    // Apply exposure
+                    const exposureFactor = Math.pow(2, params.exposure);
+                    r *= exposureFactor;
+                    g *= exposureFactor;
+                    b *= exposureFactor;
+
+                    // Apply highlights/shadows (tone mapping)
+                    const highlightFactor = lum > 0.5 ? (1 + params.highlights * (lum - 0.5) * 2) : 1;
+                    const shadowFactor = lum < 0.5 ? (1 + params.shadows * (0.5 - lum) * 2) : 1;
+
+                    r *= highlightFactor * shadowFactor;
+                    g *= highlightFactor * shadowFactor;
+                    b *= highlightFactor * shadowFactor;
+
+                    // Apply contrast (S-curve)
+                    const contrastFactor = 1 + params.contrast;
+                    r = ((r - 0.5) * contrastFactor + 0.5);
+                    g = ((g - 0.5) * contrastFactor + 0.5);
+                    b = ((b - 0.5) * contrastFactor + 0.5);
+
+                    // Convert to HSL for saturation/vibrance
+                    let [h, s, l] = rgbToHsl(r, g, b);
+
+                    // Apply saturation
+                    s = Math.min(1, Math.max(0, s * (1 + params.saturation)));
+
+                    // Apply vibrance (affects less saturated colors more)
+                    const vibranceBoost = params.vibrance * (1 - s);
+                    s = Math.min(1, Math.max(0, s + vibranceBoost));
+
+                    // Convert back to RGB
+                    [r, g, b] = hslToRgb(h, s, l);
+
+                    // Apply clarity (local contrast enhancement simulation)
+                    if (params.clarity > 0) {
+                        const clarityBoost = params.clarity * 0.3;
+                        const midtoneBoost = 1 + clarityBoost * (1 - Math.abs(lum - 0.5) * 2);
+                        r *= midtoneBoost;
+                        g *= midtoneBoost;
+                        b *= midtoneBoost;
+                    }
+
+                    // Convert HDR result to 0-255
+                    const hdrR = Math.min(255, Math.max(0, r * 255));
+                    const hdrG = Math.min(255, Math.max(0, g * 255));
+                    const hdrB = Math.min(255, Math.max(0, b * 255));
+
+                    // Blend between original and HDR based on mask value
+                    data[i] = Math.round(origR * (1 - maskValue) + hdrR * maskValue);
+                    data[i + 1] = Math.round(origG * (1 - maskValue) + hdrG * maskValue);
+                    data[i + 2] = Math.round(origB * (1 - maskValue) + hdrB * maskValue);
+                }
+
+                hdrCtx.putImageData(imageData, 0, 0);
+                processing.classList.remove('active');
+            });
+        }
+
+        // Color space conversion utilities
+        function rgbToHsl(r, g, b) {
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                    case g: h = ((b - r) / d + 2) / 6; break;
+                    case b: h = ((r - g) / d + 4) / 6; break;
+                }
+            }
+            return [h, s, l];
+        }
+
+        function hslToRgb(h, s, l) {
+            let r, g, b;
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            return [r, g, b];
+        }
+
+        // Comparison slider
+        function updateSlider(clientX) {
+            const rect = comparisonWrapper.getBoundingClientRect();
+            const x = clientX - rect.left;
+            sliderPosition = Math.max(0, Math.min(100, (x / rect.width) * 100));
+
+            sliderDivider.style.left = `${sliderPosition}%`;
+            hdrCanvas.style.clipPath = `inset(0 ${100 - sliderPosition}% 0 0)`;
+        }
+
+        sliderDivider.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                updateSlider(e.clientX);
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // Touch support
+        sliderDivider.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            e.preventDefault();
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches[0]) {
+                updateSlider(e.touches[0].clientX);
+            }
+        });
+
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // Control event listeners
+        Object.keys(controls).forEach(key => {
+            const control = controls[key];
+            const valueDisplay = document.getElementById(`${key}Value`);
+
+            control.addEventListener('input', () => {
+                valueDisplay.textContent = control.value;
+
+                // Debounce processing
+                clearTimeout(processTimeout);
+                processTimeout = setTimeout(() => {
+                    applyHDREffect();
+                }, 50);
+
+                // Remove active preset
+                document.querySelectorAll('.preset-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+            });
+        });
+
+        // Preset buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const preset = presets[btn.dataset.preset];
+                if (preset) {
+                    Object.keys(preset).forEach(key => {
+                        controls[key].value = preset[key];
+                        document.getElementById(`${key}Value`).textContent = preset[key];
+                    });
+
+                    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    applyHDREffect();
+                }
+            });
+        });
+
+        // Generate a short hash from canvas data
+        function generateImageHash(canvas) {
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            // Simple hash algorithm (djb2 variant)
+            let hash = 5381;
+            // Sample every 100th pixel to keep it fast
+            for (let i = 0; i < data.length; i += 400) {
+                hash = ((hash << 5) + hash) ^ data[i];
+                hash = hash >>> 0; // Convert to unsigned 32-bit
+            }
+
+            // Convert to base36 for shorter string, take first 8 chars
+            return hash.toString(36).padStart(8, '0').slice(0, 8);
+        }
+
+        // Download button
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const hash = generateImageHash(hdrCanvas);
+            const link = document.createElement('a');
+            link.download = `hdr-${hash}.png`;
+            link.href = hdrCanvas.toDataURL('image/png');
+            link.click();
+        });
+
+        // Reset button
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            // Reset to balanced preset
+            const preset = presets.balanced;
+            Object.keys(preset).forEach(key => {
+                controls[key].value = preset[key];
+                document.getElementById(`${key}Value`).textContent = preset[key];
+            });
+
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('[data-preset="balanced"]').classList.add('active');
+
+            applyHDREffect();
+        });
+
+        // New image button
+        document.getElementById('newImageBtn').addEventListener('click', () => {
+            editor.classList.remove('active');
+            uploadZone.style.display = 'block';
+            fileInput.value = '';
+            originalImageData = null;
+            currentImage = null;
+            sliderPosition = 50;
+            sliderDivider.style.left = '50%';
+            hdrCanvas.style.clipPath = 'inset(0 50% 0 0)';
+
+            // Reset mask state
+            maskEnabled = false;
+            maskEnabledCheckbox.checked = false;
+            maskControls.classList.remove('active');
+            maskImageData = null;
+            maskCanvas.style.display = 'none';
+            maskOverlayCanvas.style.display = 'none';
+            comparisonWrapper.classList.remove('mask-drawing');
+        });
+
+        // Window resize handler (debounced)
+        let resizeTimeout = null;
+        window.addEventListener('resize', () => {
+            if (currentImage && editor.classList.contains('active')) {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    setupCanvases(currentImage);
+                    if (maskEnabled) {
+                        initializeMaskCanvas();
+                    }
+                    applyHDREffect();
+                }, 150);
+            }
+        });
+
+        // ============================================
+        // MASK FUNCTIONALITY
+        // ============================================
+
+        // Initialize mask canvas (preserve existing mask data)
+        function initializeMaskCanvas() {
+            if (!originalCanvas.width || !originalCanvas.height) return;
+
+            // Set mask canvas to same dimensions as image
+            maskCanvas.width = originalCanvas.width;
+            maskCanvas.height = originalCanvas.height;
+            maskOverlayCanvas.width = originalCanvas.width;
+            maskOverlayCanvas.height = originalCanvas.height;
+
+            // Initialize with all white (full HDR effect by default)
+            maskCtx.fillStyle = '#ffffff';
+            maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+
+            // Store mask data
+            maskImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+
+            updateMaskOverlay();
+        }
+
+        // Initialize mask canvas with black (empty mask - no HDR effect)
+        function initializeMaskCanvasEmpty() {
+            if (!originalCanvas.width || !originalCanvas.height) return;
+
+            // Set mask canvas to same dimensions as image
+            maskCanvas.width = originalCanvas.width;
+            maskCanvas.height = originalCanvas.height;
+            maskOverlayCanvas.width = originalCanvas.width;
+            maskOverlayCanvas.height = originalCanvas.height;
+
+            // Initialize with all black (no HDR effect - user paints what to highlight)
+            maskCtx.fillStyle = '#000000';
+            maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+
+            // Store mask data
+            maskImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+
+            updateMaskOverlay();
+        }
+
+        // Update mask overlay visualization
+        function updateMaskOverlay() {
+            if (!maskEnabled || !showMaskOverlayCheckbox.checked) {
+                maskOverlayCanvas.style.display = 'none';
+                return;
+            }
+
+            maskOverlayCanvas.style.display = 'block';
+
+            // Draw mask as magenta overlay
+            const tempData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+            const overlayData = maskOverlayCtx.createImageData(maskCanvas.width, maskCanvas.height);
+
+            for (let i = 0; i < tempData.data.length; i += 4) {
+                const maskValue = tempData.data[i]; // R channel as mask value
+                if (maskValue > 128) {
+                    // HDR region - show magenta
+                    overlayData.data[i] = 255;     // R
+                    overlayData.data[i + 1] = 0;   // G
+                    overlayData.data[i + 2] = 180; // B
+                    overlayData.data[i + 3] = 80;  // A (semi-transparent)
+                } else {
+                    // Original region - transparent
+                    overlayData.data[i + 3] = 0;
+                }
+            }
+
+            maskOverlayCtx.putImageData(overlayData, 0, 0);
+        }
+
+        // Mask Toggle Handler
+        maskEnabledCheckbox.addEventListener('change', () => {
+            maskEnabled = maskEnabledCheckbox.checked;
+            maskControls.classList.toggle('active', maskEnabled);
+
+            if (maskEnabled) {
+                // Initialize mask canvas with black (no HDR effect by default)
+                initializeMaskCanvasEmpty();
+                maskCanvas.style.display = 'block';
+
+                // Move slider to far right to show full HDR result
+                sliderPosition = 100;
+                sliderDivider.style.left = '100%';
+                hdrCanvas.style.clipPath = 'inset(0 0% 0 0)';
+                // Slider is visible but requires cursor mode to drag
+                sliderDivider.style.display = 'block';
+                sliderDivider.style.pointerEvents = 'none'; // Disable dragging by default
+
+                if (showMaskOverlayCheckbox.checked) {
+                    maskOverlayCanvas.style.display = 'block';
+                    comparisonWrapper.classList.add('mask-drawing');
+                }
+
+                // Reset cursor mode
+                cursorMode = false;
+                cursorTool.classList.remove('active', 'cursor-mode');
+                comparisonWrapper.classList.remove('cursor-mode');
+
+                // Initialize brush cursor
+                updateBrushCursor();
+            } else {
+                maskCanvas.style.display = 'none';
+                maskOverlayCanvas.style.display = 'none';
+                comparisonWrapper.classList.remove('mask-drawing');
+                comparisonWrapper.classList.remove('cursor-mode');
+
+                // Restore slider to center and enable it
+                sliderPosition = 50;
+                sliderDivider.style.left = '50%';
+                hdrCanvas.style.clipPath = 'inset(0 50% 0 0)';
+                sliderDivider.style.display = 'block';
+                sliderDivider.style.pointerEvents = 'auto';
+
+                // Reset cursor mode
+                cursorMode = false;
+                cursorTool.classList.remove('active', 'cursor-mode');
+            }
+
+            applyHDREffect();
+        });
+
+        // Helper to exit cursor mode and return to drawing
+        function exitCursorMode() {
+            cursorMode = false;
+            cursorTool.classList.remove('active', 'cursor-mode');
+            comparisonWrapper.classList.remove('cursor-mode');
+            sliderDivider.style.pointerEvents = 'none';
+            if (showMaskOverlayCheckbox.checked) {
+                comparisonWrapper.classList.add('mask-drawing');
+            }
+        }
+
+        // Tool Selection
+        brushTool.addEventListener('click', () => {
+            currentTool = 'brush';
+            brushTool.classList.add('active');
+            eraserTool.classList.remove('active');
+            exitCursorMode();
+            updateBrushCursor();
+        });
+
+        eraserTool.addEventListener('click', () => {
+            currentTool = 'eraser';
+            eraserTool.classList.add('active');
+            brushTool.classList.remove('active');
+            exitCursorMode();
+            updateBrushCursor();
+        });
+
+        // Cursor tool - enables slider dragging in mask mode
+        cursorTool.addEventListener('click', () => {
+            cursorMode = !cursorMode;
+
+            if (cursorMode) {
+                // Enable cursor mode
+                cursorTool.classList.add('active', 'cursor-mode');
+                brushTool.classList.remove('active');
+                eraserTool.classList.remove('active');
+                comparisonWrapper.classList.add('cursor-mode');
+                comparisonWrapper.classList.remove('mask-drawing');
+                sliderDivider.style.pointerEvents = 'auto';
+            } else {
+                // Disable cursor mode, return to previous drawing tool
+                exitCursorMode();
+                // Restore the active tool
+                if (currentTool === 'brush') {
+                    brushTool.classList.add('active');
+                } else {
+                    eraserTool.classList.add('active');
+                }
+            }
+            updateBrushCursor();
+        });
+
+        // Keyboard shortcuts for tools
+        document.addEventListener('keydown', (e) => {
+            if (!maskEnabled) return;
+            if (e.target.tagName === 'INPUT') return; // Don't trigger when typing in inputs
+
+            if (e.key === 'b' || e.key === 'B') {
+                brushTool.click();
+            } else if (e.key === 'e' || e.key === 'E') {
+                eraserTool.click();
+            } else if (e.key === 'c' || e.key === 'C') {
+                cursorTool.click();
+            }
+        });
+
+        // Brush size control
+        brushSizeInput.addEventListener('input', () => {
+            brushSize = parseInt(brushSizeInput.value);
+            brushSizeValue.textContent = brushSize;
+            updateBrushCursor();
+        });
+
+        // Update brush cursor appearance
+        function updateBrushCursor() {
+            if (!maskEnabled) return;
+            // Calculate display size based on canvas scale
+            const rect = maskOverlayCanvas.getBoundingClientRect();
+            const scale = rect.width / maskOverlayCanvas.width;
+            const displaySize = brushSize * scale;
+            brushCursor.style.width = displaySize + 'px';
+            brushCursor.style.height = displaySize + 'px';
+            // Update cursor style based on tool
+            brushCursor.classList.toggle('eraser', currentTool === 'eraser');
+        }
+
+        // Update brush cursor position
+        function updateBrushCursorPosition(e) {
+            if (!maskEnabled) return;
+            const rect = comparisonWrapper.getBoundingClientRect();
+            const clientX = e.touches?.[0]?.clientX ?? e.clientX;
+            const clientY = e.touches?.[0]?.clientY ?? e.clientY;
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            brushCursor.style.left = x + 'px';
+            brushCursor.style.top = y + 'px';
+        }
+
+        // Mask feather control
+        maskFeatherInput.addEventListener('input', () => {
+            maskFeatherValue.textContent = maskFeatherInput.value;
+            // Debounce reprocessing
+            clearTimeout(processTimeout);
+            processTimeout = setTimeout(() => {
+                applyHDREffect();
+            }, 100);
+        });
+
+        // Show/hide mask overlay
+        showMaskOverlayCheckbox.addEventListener('change', () => {
+            updateMaskOverlay();
+            if (!showMaskOverlayCheckbox.checked) {
+                comparisonWrapper.classList.remove('mask-drawing');
+            } else if (maskEnabled) {
+                comparisonWrapper.classList.add('mask-drawing');
+            }
+        });
+
+        // Get canvas coordinates from mouse/touch event
+        function getCanvasCoordinates(e) {
+            const rect = maskOverlayCanvas.getBoundingClientRect();
+            const scaleX = maskOverlayCanvas.width / rect.width;
+            const scaleY = maskOverlayCanvas.height / rect.height;
+
+            // Safely handle touch and mouse events
+            const touch = e.touches?.[0];
+            const clientX = touch?.clientX ?? e.clientX;
+            const clientY = touch?.clientY ?? e.clientY;
+
+            // Validate we got valid coordinates
+            if (clientX == null || clientY == null) return null;
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        // Draw on mask
+        function drawOnMask(x, y) {
+            maskCtx.beginPath();
+            maskCtx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
+            maskCtx.fillStyle = currentTool === 'brush' ? '#ffffff' : '#000000';
+            maskCtx.fill();
+        }
+
+        // Draw line on mask (for smooth strokes)
+        function drawMaskLine(from, to) {
+            maskCtx.beginPath();
+            maskCtx.moveTo(from.x, from.y);
+            maskCtx.lineTo(to.x, to.y);
+            maskCtx.strokeStyle = currentTool === 'brush' ? '#ffffff' : '#000000';
+            maskCtx.lineWidth = brushSize;
+            maskCtx.lineCap = 'round';
+            maskCtx.lineJoin = 'round';
+            maskCtx.stroke();
+        }
+
+        // Debounced HDR effect for real-time drawing
+        let drawingHDRTimeout = null;
+        function debouncedHDREffect() {
+            clearTimeout(drawingHDRTimeout);
+            drawingHDRTimeout = setTimeout(() => {
+                maskImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+                applyHDREffect();
+            }, 100); // Update HDR every 100ms during drawing
+        }
+
+        // Mouse events for mask drawing
+        maskOverlayCanvas.addEventListener('mousedown', (e) => {
+            if (!maskEnabled) return;
+            isDrawingMask = true;
+            const coords = getCanvasCoordinates(e);
+            if (!coords) return;
+            drawOnMask(coords.x, coords.y);
+            lastMaskPoint = coords;
+            updateMaskOverlay(); // Immediate overlay update
+            debouncedHDREffect(); // Debounced HDR effect
+        });
+
+        maskOverlayCanvas.addEventListener('mousemove', (e) => {
+            updateBrushCursorPosition(e); // Always update cursor position
+            if (!isDrawingMask || !maskEnabled) return;
+            const coords = getCanvasCoordinates(e);
+            if (!coords) return;
+            if (lastMaskPoint) {
+                drawMaskLine(lastMaskPoint, coords);
+            }
+            lastMaskPoint = coords;
+            updateMaskOverlay(); // Immediate overlay update
+            debouncedHDREffect(); // Debounced HDR effect
+        });
+
+        // Track mouse position even when not drawing
+        comparisonWrapper.addEventListener('mousemove', (e) => {
+            if (maskEnabled) {
+                updateBrushCursorPosition(e);
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDrawingMask) {
+                isDrawingMask = false;
+                lastMaskPoint = null;
+                if (maskEnabled) {
+                    clearTimeout(drawingHDRTimeout);
+                    maskImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+                    updateMaskOverlay();
+                    applyHDREffect(); // Final HDR update
+                }
+            }
+        });
+
+        // Touch events for mask drawing
+        maskOverlayCanvas.addEventListener('touchstart', (e) => {
+            if (!maskEnabled) return;
+            e.preventDefault();
+            isDrawingMask = true;
+            const coords = getCanvasCoordinates(e);
+            if (!coords) return;
+            updateBrushCursorPosition(e);
+            drawOnMask(coords.x, coords.y);
+            lastMaskPoint = coords;
+            updateMaskOverlay(); // Immediate overlay update
+            debouncedHDREffect(); // Debounced HDR effect
+        });
+
+        maskOverlayCanvas.addEventListener('touchmove', (e) => {
+            if (!isDrawingMask || !maskEnabled) return;
+            e.preventDefault();
+            const coords = getCanvasCoordinates(e);
+            if (!coords) return;
+            updateBrushCursorPosition(e);
+            if (lastMaskPoint) {
+                drawMaskLine(lastMaskPoint, coords);
+            }
+            lastMaskPoint = coords;
+            updateMaskOverlay(); // Immediate overlay update
+            debouncedHDREffect(); // Debounced HDR effect
+        });
+
+        document.addEventListener('touchend', () => {
+            if (isDrawingMask) {
+                isDrawingMask = false;
+                lastMaskPoint = null;
+                if (maskEnabled) {
+                    clearTimeout(drawingHDRTimeout);
+                    maskImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+                    updateMaskOverlay();
+                    applyHDREffect(); // Final HDR update
+                }
+            }
+        });
+
+        // Upload mask image
+        uploadMaskBtn.addEventListener('click', () => {
+            maskFileInput.click();
+        });
+
+        maskFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            const validTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+            if (!validTypes.includes(file.type)) {
+                console.warn('Invalid mask file type:', file.type);
+                return;
+            }
+
+            // Validate file size (max 20MB)
+            const maxSize = 20 * 1024 * 1024;
+            if (file.size > maxSize) {
+                console.warn('Mask file too large:', file.size);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Draw uploaded mask to mask canvas, scale to match current image
+                    maskCtx.drawImage(img, 0, 0, maskCanvas.width, maskCanvas.height);
+
+                    // Convert to grayscale if colored
+                    const imageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+                    const data = imageData.data;
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        // Convert to grayscale using luminance
+                        const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+                        data[i] = gray;
+                        data[i + 1] = gray;
+                        data[i + 2] = gray;
+                        data[i + 3] = 255;
+                    }
+
+                    maskCtx.putImageData(imageData, 0, 0);
+                    maskImageData = imageData;
+
+                    updateMaskOverlay();
+                    applyHDREffect();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+
+            // Reset input
+            maskFileInput.value = '';
+        });
+
+        // Clear mask (fill with black = no HDR effect, user paints what to highlight)
+        clearMaskBtn.addEventListener('click', () => {
+            maskCtx.fillStyle = '#000000';
+            maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+            maskImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+            updateMaskOverlay();
+            applyHDREffect();
+        });
+
+        // Invert mask
+        invertMaskBtn.addEventListener('click', () => {
+            const imageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+            const data = imageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = 255 - data[i];
+                data[i + 1] = 255 - data[i + 1];
+                data[i + 2] = 255 - data[i + 2];
+            }
+
+            maskCtx.putImageData(imageData, 0, 0);
+            maskImageData = imageData;
+            updateMaskOverlay();
+            applyHDREffect();
+        });
+
+        // Apply feathering (separable box blur) to mask - O(n) instead of O(n²)
+        function applyMaskFeather(maskData, radius) {
+            if (radius <= 0) return maskData.data;
+
+            const width = maskData.width;
+            const height = maskData.height;
+            const src = maskData.data;
+
+            // Horizontal blur pass
+            const temp = new Uint8ClampedArray(src.length);
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let sum = 0;
+                    let count = 0;
+
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        const nx = x + dx;
+                        if (nx >= 0 && nx < width) {
+                            const idx = (y * width + nx) * 4;
+                            sum += src[idx];
+                            count++;
+                        }
+                    }
+
+                    const idx = (y * width + x) * 4;
+                    temp[idx] = Math.round(sum / count);
+                }
+            }
+
+            // Vertical blur pass
+            const dst = new Uint8ClampedArray(src.length);
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let sum = 0;
+                    let count = 0;
+
+                    for (let dy = -radius; dy <= radius; dy++) {
+                        const ny = y + dy;
+                        if (ny >= 0 && ny < height) {
+                            const idx = (ny * width + x) * 4;
+                            sum += temp[idx];
+                            count++;
+                        }
+                    }
+
+                    const idx = (y * width + x) * 4;
+                    const avg = Math.round(sum / count);
+                    dst[idx] = avg;
+                    dst[idx + 1] = avg;
+                    dst[idx + 2] = avg;
+                    dst[idx + 3] = 255;
+                }
+            }
+
+            return dst;
+        }
+
+        // Help Modal Handlers
+        maskHelpBtn.addEventListener('click', () => {
+            maskHelpModal.classList.add('active');
+        });
+
+        closeMaskHelp.addEventListener('click', () => {
+            maskHelpModal.classList.remove('active');
+        });
+
+        maskHelpModal.addEventListener('click', (e) => {
+            if (e.target === maskHelpModal) {
+                maskHelpModal.classList.remove('active');
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && maskHelpModal.classList.contains('active')) {
+                maskHelpModal.classList.remove('active');
+            }
+        });
+
+        // ============================================
+        // MERMAID INITIALIZATION
+        // ============================================
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            themeVariables: {
+                // Background colors
+                primaryColor: '#1a1a24',
+                primaryBorderColor: '#00d4aa',
+                primaryTextColor: '#f5f5f7',
+                // Secondary colors
+                secondaryColor: '#22222e',
+                secondaryBorderColor: '#ff6b9d',
+                secondaryTextColor: '#a1a1aa',
+                // Tertiary
+                tertiaryColor: '#12121a',
+                tertiaryBorderColor: '#ffd93d',
+                tertiaryTextColor: '#f5f5f7',
+                // Lines and text
+                lineColor: '#00d4aa',
+                textColor: '#f5f5f7',
+                // Node styling
+                nodeBorder: '#00d4aa',
+                mainBkg: '#1a1a24',
+                // Flowchart specific
+                edgeLabelBackground: '#12121a',
+                clusterBkg: '#12121a',
+                clusterBorder: 'rgba(255,255,255,0.1)',
+                // Font
+                fontFamily: 'Outfit, sans-serif',
+                fontSize: '14px'
+            },
+            flowchart: {
+                curve: 'basis',
+                padding: 20,
+                nodeSpacing: 50,
+                rankSpacing: 60,
+                htmlLabels: true,
+                useMaxWidth: true
+            }
+        });
+    </script>
+</body>
+</html>

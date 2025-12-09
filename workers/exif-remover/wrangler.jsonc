@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "exif-remover",
+  "main": "src/index.js",
+  "compatibility_date": "2025-07-18",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "directory": "public",
+    "binding": "ASSETS"
+  }
+}
