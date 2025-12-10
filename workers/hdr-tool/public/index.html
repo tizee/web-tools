@@ -15,6 +15,7 @@
         console.log('✅ PNG codec loaded via WASM');
     </script>
     <script src="https://unpkg.com/pako@2.1.0/dist/pako_deflate.min.js"></script>
+    <script src="https://unpkg.com/svg-pan-zoom@3.6.2/dist/svg-pan-zoom.min.js"></script>
     <style>
         :root {
             /* Deep cinematic dark palette */
@@ -3575,7 +3576,7 @@ flowchart LR
         // MERMAID INITIALIZATION
         // ============================================
         mermaid.initialize({
-            startOnLoad: true,
+            startOnLoad: false,
             theme: 'dark',
             themeVariables: {
                 // Background colors
@@ -3611,6 +3612,42 @@ flowchart LR
                 rankSpacing: 60,
                 htmlLabels: true,
                 useMaxWidth: true
+            }
+        });
+
+        // Initialize Mermaid and add Zoom/Pan
+        mermaid.run({
+            querySelector: '.mermaid'
+        }).then(() => {
+            const container = document.getElementById('pipelineDiagram');
+            if (!container) return;
+            
+            const svg = container.querySelector('svg');
+            if (svg) {
+                // Ensure SVG has layout dimensions for the pan-zoom container
+                // This prevents the SVG from being too small on mobile
+                svg.style.width = '100%';
+                svg.style.height = '100%';
+                svg.style.minHeight = '350px';
+                
+                // Initialize svg-pan-zoom
+                if (typeof svgPanZoom !== 'undefined') {
+                    try {
+                        svgPanZoom(svg, {
+                            zoomEnabled: true,
+                            controlIconsEnabled: true,
+                            fit: true,
+                            center: true,
+                            minZoom: 0.5,
+                            maxZoom: 10,
+                            dblClickZoomEnabled: true,
+                            zoomScaleSensitivity: 0.4
+                        });
+                        console.log('✅ Mermaid diagram zoom & pan enabled');
+                    } catch (e) {
+                        console.error('Failed to init svg-pan-zoom:', e);
+                    }
+                }
             }
         });
     </script>
