@@ -3214,6 +3214,12 @@ flowchart LR
             // Validate we got valid coordinates
             if (clientX == null || clientY == null) return null;
 
+            // Check if touch is within canvas bounds
+            if (clientX < rect.left || clientX > rect.right ||
+                clientY < rect.top || clientY > rect.bottom) {
+                return null; // Touch is outside canvas - ignore
+            }
+
             return {
                 x: (clientX - rect.left) * scaleX,
                 y: (clientY - rect.top) * scaleY
@@ -3296,32 +3302,53 @@ flowchart LR
         });
 
         // Touch events for mask drawing
+        // Only single-touch drawing is allowed; multi-touch allows scrolling
         maskOverlayCanvas.addEventListener('touchstart', (e) => {
             if (!maskEnabled) return;
-            e.preventDefault();
-            isDrawingMask = true;
+            if (e.touches.length > 1) {
+                isDrawingMask = false;
+                lastMaskPoint = null;
+                return;
+            }
             const coords = getCanvasCoordinates(e);
-            if (!coords) return;
+            if (!coords) {
+                isDrawingMask = false;
+                lastMaskPoint = null;
+                return; // Touch outside canvas bounds
+            }
+            isDrawingMask = true;
             updateBrushCursorPosition(e);
             drawOnMask(coords.x, coords.y);
             lastMaskPoint = coords;
-            updateMaskOverlay(); // Immediate overlay update
-            debouncedHDREffect(); // Debounced HDR effect
-        });
+            updateMaskOverlay();
+            debouncedHDREffect();
+        }, { passive: true });
 
         maskOverlayCanvas.addEventListener('touchmove', (e) => {
-            if (!isDrawingMask || !maskEnabled) return;
-            e.preventDefault();
+            if (!maskEnabled) return;
+            // Cancel drawing on multi-touch (scroll/pinch gesture)
+            if (e.touches.length > 1) {
+                isDrawingMask = false;
+                lastMaskPoint = null;
+                return;
+            }
+            if (!isDrawingMask) return;
             const coords = getCanvasCoordinates(e);
-            if (!coords) return;
+            if (!coords) {
+                // Touch moved outside canvas - stop drawing
+                isDrawingMask = false;
+                lastMaskPoint = null;
+                return;
+            }
+            e.preventDefault();
             updateBrushCursorPosition(e);
             if (lastMaskPoint) {
                 drawMaskLine(lastMaskPoint, coords);
             }
             lastMaskPoint = coords;
-            updateMaskOverlay(); // Immediate overlay update
-            debouncedHDREffect(); // Debounced HDR effect
-        });
+            updateMaskOverlay();
+            debouncedHDREffect();
+        }, { passive: false });
 
         document.addEventListener('touchend', () => {
             if (isDrawingMask) {
@@ -3331,7 +3358,7 @@ flowchart LR
                     clearTimeout(drawingHDRTimeout);
                     maskImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
                     updateMaskOverlay();
-                    applyHDREffect(); // Final HDR update
+                    applyHDREffect();
                 }
             }
         });
