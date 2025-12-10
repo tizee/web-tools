@@ -1742,11 +1742,18 @@
 
                 <div class="controls-footer">
                     <div class="control-group" style="margin-bottom: var(--space-sm);">
+                        <div class="control-label" style="margin-bottom: 4px; color: var(--text-secondary); font-size: 0.85em;">
+                            <span>Original Size</span>
+                            <span class="control-value" id="originalSizeValue">-</span>
+                        </div>
                         <div class="control-label">
                             <span>Max Export Size</span>
                             <span class="control-value" id="exportSizeValue">800 px</span>
                         </div>
                         <input type="range" id="exportSize" min="240" max="2000" step="10" value="800">
+                        <div class="control-tooltip" style="margin-top: 6px; font-size: 0.75em; color: var(--text-tertiary); line-height: 1.3;">
+                            Images larger than 2000px will be automatically downscaled to ensure HDR compatibility on social platforms.
+                        </div>
                     </div>
 
                     <button class="btn btn-primary" id="downloadBtn">
@@ -2063,7 +2070,7 @@ flowchart LR
                 const img = new Image();
                 img.onload = () => {
                     currentImage = img;
-                    
+
                     // Auto-exit mask mode and reset UI state when loading new image
                     // This ensures the slider is unlock/draggable even if mask mode was active
                     maskEnabled = false;
@@ -2138,6 +2145,24 @@ flowchart LR
                 hdrCanvas.width = width;
                 hdrCanvas.height = height;
 
+                // Update export size control to default to original image size (capped at max range)
+                const longEdge = Math.max(img.naturalWidth, img.naturalHeight);
+                const exportInput = document.getElementById('exportSize');
+                if (exportInput) {
+                    // Respect the min/max limits of the input
+                    const maxVal = parseInt(exportInput.max);
+                    const minVal = parseInt(exportInput.min);
+                    const defaultSize = Math.max(minVal, Math.min(maxVal, longEdge));
+                    exportInput.value = defaultSize;
+                    if (typeof updateExportSizeDisplay === 'function') updateExportSizeDisplay();
+                }
+
+                // Update original size display
+                const originalSizeValue = document.getElementById('originalSizeValue');
+                if (originalSizeValue) {
+                    originalSizeValue.textContent = `${img.naturalWidth} x ${img.naturalHeight} px`;
+                }
+
                 // Draw original image
                 originalCtx.drawImage(img, 0, 0, width, height);
 
@@ -2161,6 +2186,118 @@ flowchart LR
             }
         }
 
+        // Reusable HDR pixel processing function
+        // Takes source ImageData, optional mask data array, and returns processed ImageData
+        // This allows HDR processing at any resolution (display or export)
+        function processHDRPixels(sourceImageData, maskDataArray) {
+            const imageData = new ImageData(
+                new Uint8ClampedArray(sourceImageData.data),
+                sourceImageData.width,
+                sourceImageData.height
+            );
+
+            const data = imageData.data;
+            const origData = sourceImageData.data;
+
+            // HDR parameters (read current control values)
+            const hdrBoost = 1 + parseFloat(controls.exposure.value) / 100 * 10.0;
+            const sdrDarken = 1 - parseFloat(controls.contrast.value) / 100 * 0.95;
+
+            const params = {
+                highlights: parseFloat(controls.highlights.value) / 100,
+                shadows: parseFloat(controls.shadows.value) / 100,
+                saturation: parseFloat(controls.saturation.value) / 100,
+                vibrance: parseFloat(controls.vibrance.value) / 100,
+                clarity: parseFloat(controls.clarity.value) / 100
+            };
+
+            // Process each pixel
+            for (let i = 0; i < data.length; i += 4) {
+                let r = origData[i] / 255;
+                let g = origData[i + 1] / 255;
+                let b = origData[i + 2] / 255;
+
+                // Get mask value (0 = SDR darken, 1 = HDR boost)
+                let maskValue = 0;
+                if (maskDataArray) {
+                    maskValue = maskDataArray[i] / 255;
+                }
+
+                const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+                let linearR = sRGBToLinear(r);
+                let linearG = sRGBToLinear(g);
+                let linearB = sRGBToLinear(b);
+
+                // SDR Darkened version
+                const sdrR = linearR * sdrDarken;
+                const sdrG = linearG * sdrDarken;
+                const sdrB = linearB * sdrDarken;
+
+                // HDR Boosted version
+                const boostedR = Math.min(1, linearR * hdrBoost);
+                const boostedG = Math.min(1, linearG * hdrBoost);
+                const boostedB = Math.min(1, linearB * hdrBoost);
+
+                // Composite based on mask
+                linearR = sdrR * (1 - maskValue) + boostedR * maskValue;
+                linearG = sdrG * (1 - maskValue) + boostedG * maskValue;
+                linearB = sdrB * (1 - maskValue) + boostedB * maskValue;
+
+                r = linearToSRGB(linearR);
+                g = linearToSRGB(linearG);
+                b = linearToSRGB(linearB);
+
+                // Apply highlights
+                if (params.highlights !== 0) {
+                    const highlightWeight = Math.max(0, (lum - 0.5) * 2);
+                    const highlightFactor = 1 + params.highlights * highlightWeight * 3.0;
+                    r *= highlightFactor;
+                    g *= highlightFactor;
+                    b *= highlightFactor;
+                }
+
+                // Apply shadows
+                if (params.shadows !== 0) {
+                    const shadowWeight = Math.max(0, (0.5 - lum) * 2);
+                    const shadowFactor = 1 + params.shadows * shadowWeight * 3.0;
+                    r *= shadowFactor;
+                    g *= shadowFactor;
+                    b *= shadowFactor;
+                }
+
+                // Apply saturation and vibrance
+                if (params.saturation !== 0 || params.vibrance !== 0) {
+                    let [h, s, v] = rgbToHsv(
+                        Math.max(0, Math.min(1, r)),
+                        Math.max(0, Math.min(1, g)),
+                        Math.max(0, Math.min(1, b))
+                    );
+
+                    let newS = s * (1 + params.saturation * 4.0);
+                    const vibranceBoost = params.vibrance * (1 - s) * 3.0;
+                    newS = Math.min(1, Math.max(0, newS + vibranceBoost));
+
+                    [r, g, b] = hsvToRgb(h, newS, v);
+                }
+
+                // Apply clarity
+                if (params.clarity > 0) {
+                    const midtoneWeight = 1 - Math.abs(lum - 0.5) * 2;
+                    const clarityBoost = 1 + params.clarity * midtoneWeight * 2.0;
+                    r *= clarityBoost;
+                    g *= clarityBoost;
+                    b *= clarityBoost;
+                }
+
+                data[i] = Math.round(Math.max(0, Math.min(1, r)) * 255);
+                data[i + 1] = Math.round(Math.max(0, Math.min(1, g)) * 255);
+                data[i + 2] = Math.round(Math.max(0, Math.min(1, b)) * 255);
+            }
+
+            return imageData;
+        }
+
         // HDR Processing with proper HDR boost and SDR darken
         // Key insight: HDR ICC profile makes ENTIRE image brighter on HDR displays
         // So we need to:
@@ -2173,33 +2310,6 @@ flowchart LR
 
             // Use requestAnimationFrame for smoother processing
             requestAnimationFrame(() => {
-                const imageData = new ImageData(
-                    new Uint8ClampedArray(originalImageData.data),
-                    originalImageData.width,
-                    originalImageData.height
-                );
-
-                const data = imageData.data;
-                const origData = originalImageData.data;
-
-                // HDR parameters
-                // HDR Boost: how much to brighten highlight areas (gamma-based)
-                // SDR Darken: how much to darken non-highlight areas
-                // EXPANDED RANGES (EXTREME):
-                // HDR Boost: 1.0 to 11.0 (Extreme brightening for maximum pop)
-                // SDR Darken: 1.0 to 0.05 (Almost total darkness for background)
-                const hdrBoost = 1 + parseFloat(controls.exposure.value) / 100 * 10.0; 
-                const sdrDarken = 1 - parseFloat(controls.contrast.value) / 100 * 0.95;
-
-                // Additional adjustments
-                const params = {
-                    highlights: parseFloat(controls.highlights.value) / 100,
-                    shadows: parseFloat(controls.shadows.value) / 100,
-                    saturation: parseFloat(controls.saturation.value) / 100,
-                    vibrance: parseFloat(controls.vibrance.value) / 100,
-                    clarity: parseFloat(controls.clarity.value) / 100
-                };
-
                 // Get mask data if enabled
                 const useMask = maskEnabled && maskImageData;
                 let processedMask = null;
@@ -2208,104 +2318,9 @@ flowchart LR
                     processedMask = feather > 0 ? applyMaskFeather(maskImageData, feather) : maskImageData.data;
                 }
 
-
-
-                // Process each pixel
-                for (let i = 0; i < data.length; i += 4) {
-                    // Original sRGB pixel values normalized to 0-1
-                    let r = origData[i] / 255;
-                    let g = origData[i + 1] / 255;
-                    let b = origData[i + 2] / 255;
-
-                    // Get mask value (0 = SDR darken, 1 = HDR boost)
-                    let maskValue = 0; // Default: no HDR boost (SDR area)
-                    if (useMask && processedMask) {
-                        maskValue = processedMask[i] / 255;
-                    }
-
-                    // Calculate luminance for additional processing
-                    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-
-                    // Convert to linear sRGB for processing
-                    let linearR = sRGBToLinear(r);
-                    let linearG = sRGBToLinear(g);
-                    let linearB = sRGBToLinear(b);
-
-                    // Calculate SDR Darkened version (Background layer)
-                    // This creates the "dimmed" look for non-highlight areas to compensate for HDR display brightness
-                    const sdrR = linearR * sdrDarken;
-                    const sdrG = linearG * sdrDarken;
-                    const sdrB = linearB * sdrDarken;
-
-                    // Calculate HDR Boosted version (Highlight layer)
-                    // This creates the bright, glowing look for masked areas
-                    const boostedR = Math.min(1, linearR * hdrBoost);
-                    const boostedG = Math.min(1, linearG * hdrBoost);
-                    const boostedB = Math.min(1, linearB * hdrBoost);
-
-                    // Composite layers based on mask
-                    // mask 0 (Black) -> SDR Darken
-                    // mask 1 (White) -> HDR Boost
-                    // Grays -> Smooth blend
-                    linearR = sdrR * (1 - maskValue) + boostedR * maskValue;
-                    linearG = sdrG * (1 - maskValue) + boostedG * maskValue;
-                    linearB = sdrB * (1 - maskValue) + boostedB * maskValue;
-
-                    // Convert back to sRGB for subsequent adjustments and display
-                    r = linearToSRGB(linearR);
-                    g = linearToSRGB(linearG);
-                    b = linearToSRGB(linearB);
-
-                    // Apply highlights (affect bright areas)
-                    if (params.highlights !== 0) {
-                        const highlightWeight = Math.max(0, (lum - 0.5) * 2);
-                        const highlightFactor = 1 + params.highlights * highlightWeight * 3.0;
-                        r *= highlightFactor;
-                        g *= highlightFactor;
-                        b *= highlightFactor;
-                    }
-
-                    // Apply shadows (affect dark areas)
-                    if (params.shadows !== 0) {
-                        const shadowWeight = Math.max(0, (0.5 - lum) * 2);
-                        const shadowFactor = 1 + params.shadows * shadowWeight * 3.0;
-                        r *= shadowFactor;
-                        g *= shadowFactor;
-                        b *= shadowFactor;
-                    }
-
-                    // Apply saturation and vibrance in HSV space
-                    if (params.saturation !== 0 || params.vibrance !== 0) {
-                        let [h, s, v] = rgbToHsv(
-                            Math.max(0, Math.min(1, r)),
-                            Math.max(0, Math.min(1, g)),
-                            Math.max(0, Math.min(1, b))
-                        );
-
-                        // Apply saturation
-                        let newS = s * (1 + params.saturation * 4.0);
-
-                        // Apply vibrance (affects less saturated colors more)
-                        const vibranceBoost = params.vibrance * (1 - s) * 3.0;
-                        newS = Math.min(1, Math.max(0, newS + vibranceBoost));
-
-                        [r, g, b] = hsvToRgb(h, newS, v);
-                    }
-
-                    // Apply clarity (midtone contrast enhancement)
-                    if (params.clarity > 0) {
-                        const midtoneWeight = 1 - Math.abs(lum - 0.5) * 2;
-                        const clarityBoost = 1 + params.clarity * midtoneWeight * 2.0;
-                        r *= clarityBoost;
-                        g *= clarityBoost;
-                        b *= clarityBoost;
-                    }
-
-                    // Clamp and convert to 8-bit
-                    data[i] = Math.round(Math.max(0, Math.min(1, r)) * 255);
-                    data[i + 1] = Math.round(Math.max(0, Math.min(1, g)) * 255);
-                    data[i + 2] = Math.round(Math.max(0, Math.min(1, b)) * 255);
-                }
+                // Process pixels using the reusable function
+                // Note: processHDRPixels reads controls directly, so we don't need to pass params
+                const imageData = processHDRPixels(originalImageData, processedMask);
 
                 hdrCtx.putImageData(imageData, 0, 0);
                 processing.classList.remove('active');
@@ -2557,7 +2572,7 @@ flowchart LR
         // ============================================
         // PQ TRANSFER FUNCTION (SMPTE ST 2084)
         // ============================================
-        
+
         // Constants for PQ EOTF
         const PQ_M1 = 2610.0 / 4096.0 / 4.0;
         const PQ_M2 = 2523.0 / 4096.0 * 128.0;
@@ -2636,35 +2651,80 @@ flowchart LR
         }
 
         // Convert canvas to PNG with embedded iCCP chunk (Rec.2020 PQ)
-        async function canvasToPNGWithICC(canvas) {
+        async function canvasToPNGWithICC(ignoredCanvas) {
+            // Fix: Use original image for export to support high resolution
+            if (!currentImage) throw new Error("No image loaded");
+
             // Limit export size based on user input
             // This prevents social platforms (WeChat/Feishu) from re-compressing and stripping HDR tags if too large
             const MAX_EXPORT_SIZE = parseInt(document.getElementById('exportSize').value) || 800;
-            
-            let exportWidth = canvas.width;
-            let exportHeight = canvas.height;
-            
-            if (exportWidth > MAX_EXPORT_SIZE || exportHeight > MAX_EXPORT_SIZE) {
-                const scale = Math.min(MAX_EXPORT_SIZE / exportWidth, MAX_EXPORT_SIZE / exportHeight);
+            console.log('DEBUG: canvasToPNGWithICC called. MAX_EXPORT_SIZE from Input:', MAX_EXPORT_SIZE);
+
+            let exportWidth = currentImage.naturalWidth;
+            let exportHeight = currentImage.naturalHeight;
+
+            // Calculate scale to match the requested size (acts as Target Long Edge)
+            // This allows both downscaling (for size limits) and upscaling (for quality)
+            const scale = Math.min(MAX_EXPORT_SIZE / exportWidth, MAX_EXPORT_SIZE / exportHeight);
+
+            // Apply scale if significantly different from 1.0
+            if (Math.abs(scale - 1.0) > 0.001) {
                 exportWidth = Math.round(exportWidth * scale);
                 exportHeight = Math.round(exportHeight * scale);
             }
+            console.log(`DEBUG: Calculated Export Dimensions: ${exportWidth}x${exportHeight} (Scale: ${scale.toFixed(3)})`);
 
-            // Create a temporary canvas for resizing
+            console.log(`Exporting HDR at ${exportWidth}x${exportHeight} (Original: ${currentImage.naturalWidth}x${currentImage.naturalHeight})`);
+
+            // 1. Prepare Source Data (Original Image scaled to export size)
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = exportWidth;
             tempCanvas.height = exportHeight;
             const ctx = tempCanvas.getContext('2d');
-            
-            // Draw the source canvas (which contains the HDR-processed look) onto the temp canvas
-            // Use 'high' quality for downscaling
+
+            // Draw the source image (Use 'high' quality for scaling)
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(canvas, 0, 0, exportWidth, exportHeight);
+            ctx.drawImage(currentImage, 0, 0, exportWidth, exportHeight);
 
-            // Get resized sRGB data
-            const imageData = ctx.getImageData(0, 0, exportWidth, exportHeight);
-            const srgbData = imageData.data;
+            // Get source sRGB data
+            const sourceImageData = ctx.getImageData(0, 0, exportWidth, exportHeight);
+
+            // 2. Prepare Mask Data (if enabled)
+            let processedMask = null;
+            if (maskEnabled) {
+                // Get current mask display canvas
+                const maskCanvas = document.getElementById('maskCanvas');
+
+                // Create temp canvas to scale mask
+                const tempMaskCanvas = document.createElement('canvas');
+                tempMaskCanvas.width = exportWidth;
+                tempMaskCanvas.height = exportHeight;
+                const tmCtx = tempMaskCanvas.getContext('2d');
+
+                // Scale mask to export size
+                tmCtx.imageSmoothingEnabled = true;
+                tmCtx.imageSmoothingQuality = 'high';
+                tmCtx.drawImage(maskCanvas, 0, 0, exportWidth, exportHeight);
+                const scaledMaskData = tmCtx.getImageData(0, 0, exportWidth, exportHeight);
+
+                // Handle feathering with scaling
+                const feather = parseInt(maskFeatherInput.value);
+                if (feather > 0) {
+                     // Scale feather radius proportional to resolution increase
+                     const displayWidth = document.getElementById('hdrCanvas').width;
+                     const featherScale = exportWidth / displayWidth;
+                     const exportFeather = Math.round(feather * featherScale);
+
+                     processedMask = applyMaskFeather(scaledMaskData, exportFeather);
+                } else {
+                     processedMask = scaledMaskData.data;
+                }
+            }
+
+            // 3. Process HDR Effect at Export Resolution
+            const processedImageData = processHDRPixels(sourceImageData, processedMask);
+            const srgbData = processedImageData.data;
             const width = exportWidth;
             const height = exportHeight;
 
@@ -2843,7 +2903,7 @@ flowchart LR
                 exportSizeValue.textContent = `${maxDim} px (Max)`;
                 return;
             }
-            
+
             const aspect = currentImage.width / currentImage.height;
             let w, h;
             if (currentImage.width >= currentImage.height) {
@@ -2860,8 +2920,17 @@ flowchart LR
 
         // Download button
         document.getElementById('downloadBtn').addEventListener('click', async () => {
+            // Generate hash from current parameters to ensure unique filenames for different settings
+            // We use export size as part of the hash input to ensure filename changes
+            const exportSize = parseInt(document.getElementById('exportSize').value) || 800;
             const hash = generateImageHash(hdrCanvas);
-            const filename = `hdr-${hash}.png`;
+
+            // DEBUG: Update filename to include dimensions and timestamp to verify changes
+            // Real implementation: const filename = `hdr-${hash}.png`;
+            const timestamp = new Date().getTime().toString().slice(-4);
+            const filename = `hdr-export-w${exportSize}-${hash}-${timestamp}.png`;
+
+            console.log(`DEBUG: Starting download. Filename: ${filename}`);
 
             try {
                 // Check if PNG codec is loaded (it should be loaded at page init)
@@ -2947,10 +3016,12 @@ flowchart LR
             if (currentImage && editor.classList.contains('active')) {
                 clearTimeout(resizeTimeout);
                 resizeTimeout = setTimeout(() => {
-                    setupCanvases(currentImage);
-                    if (maskEnabled) {
-                        initializeMaskCanvas();
+                    // Skip resize when mask is enabled - dimensions must stay in sync
+                    // CSS width:100%/height:100% handles visual scaling
+                    if (maskEnabled && maskImageData) {
+                        return;
                     }
+                    setupCanvases(currentImage);
                     applyHDREffect();
                 }, 150);
             }
@@ -3214,12 +3285,6 @@ flowchart LR
             // Validate we got valid coordinates
             if (clientX == null || clientY == null) return null;
 
-            // Check if touch is within canvas bounds
-            if (clientX < rect.left || clientX > rect.right ||
-                clientY < rect.top || clientY > rect.bottom) {
-                return null; // Touch is outside canvas - ignore
-            }
-
             return {
                 x: (clientX - rect.left) * scaleX,
                 y: (clientY - rect.top) * scaleY
@@ -3302,53 +3367,32 @@ flowchart LR
         });
 
         // Touch events for mask drawing
-        // Only single-touch drawing is allowed; multi-touch allows scrolling
         maskOverlayCanvas.addEventListener('touchstart', (e) => {
             if (!maskEnabled) return;
-            if (e.touches.length > 1) {
-                isDrawingMask = false;
-                lastMaskPoint = null;
-                return;
-            }
-            const coords = getCanvasCoordinates(e);
-            if (!coords) {
-                isDrawingMask = false;
-                lastMaskPoint = null;
-                return; // Touch outside canvas bounds
-            }
+            e.preventDefault();
             isDrawingMask = true;
+            const coords = getCanvasCoordinates(e);
+            if (!coords) return;
             updateBrushCursorPosition(e);
             drawOnMask(coords.x, coords.y);
             lastMaskPoint = coords;
-            updateMaskOverlay();
-            debouncedHDREffect();
-        }, { passive: true });
+            updateMaskOverlay(); // Immediate overlay update
+            debouncedHDREffect(); // Debounced HDR effect
+        });
 
         maskOverlayCanvas.addEventListener('touchmove', (e) => {
-            if (!maskEnabled) return;
-            // Cancel drawing on multi-touch (scroll/pinch gesture)
-            if (e.touches.length > 1) {
-                isDrawingMask = false;
-                lastMaskPoint = null;
-                return;
-            }
-            if (!isDrawingMask) return;
-            const coords = getCanvasCoordinates(e);
-            if (!coords) {
-                // Touch moved outside canvas - stop drawing
-                isDrawingMask = false;
-                lastMaskPoint = null;
-                return;
-            }
+            if (!isDrawingMask || !maskEnabled) return;
             e.preventDefault();
+            const coords = getCanvasCoordinates(e);
+            if (!coords) return;
             updateBrushCursorPosition(e);
             if (lastMaskPoint) {
                 drawMaskLine(lastMaskPoint, coords);
             }
             lastMaskPoint = coords;
-            updateMaskOverlay();
-            debouncedHDREffect();
-        }, { passive: false });
+            updateMaskOverlay(); // Immediate overlay update
+            debouncedHDREffect(); // Debounced HDR effect
+        });
 
         document.addEventListener('touchend', () => {
             if (isDrawingMask) {
