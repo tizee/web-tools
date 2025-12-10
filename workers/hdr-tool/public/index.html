@@ -2030,11 +2030,11 @@ flowchart LR
         // Presets optimized for HDR with mask-based highlight/SDR separation
         // exposure = HDR Boost (0-100%), contrast = SDR Darken (0-100%)
         const presets = {
-            subtle: { exposure: 30, contrast: 20, highlights: 0, shadows: 10, saturation: 5, vibrance: 10, clarity: 3 },
-            balanced: { exposure: 50, contrast: 40, highlights: 0, shadows: 15, saturation: 10, vibrance: 15, clarity: 8 },
-            vivid: { exposure: 70, contrast: 50, highlights: 10, shadows: 20, saturation: 20, vibrance: 25, clarity: 15 },
-            dramatic: { exposure: 80, contrast: 60, highlights: 15, shadows: 25, saturation: 15, vibrance: 30, clarity: 20 },
-            hdr10: { exposure: 60, contrast: 45, highlights: 5, shadows: 20, saturation: 10, vibrance: 20, clarity: 10 }
+            subtle: { exposure: 40, contrast: 35, highlights: 0, shadows: -10, saturation: 5, vibrance: 10, clarity: 3 },
+            balanced: { exposure: 60, contrast: 50, highlights: 0, shadows: -20, saturation: 10, vibrance: 15, clarity: 8 },
+            vivid: { exposure: 75, contrast: 60, highlights: 10, shadows: -15, saturation: 20, vibrance: 25, clarity: 15 },
+            dramatic: { exposure: 85, contrast: 70, highlights: 15, shadows: -10, saturation: 15, vibrance: 30, clarity: 20 },
+            hdr10: { exposure: 65, contrast: 55, highlights: 5, shadows: -15, saturation: 10, vibrance: 20, clarity: 10 }
         };
 
         // File upload handling
@@ -2202,8 +2202,9 @@ flowchart LR
             const origData = sourceImageData.data;
 
             // HDR parameters (read current control values)
-            const hdrBoost = 1 + parseFloat(controls.exposure.value) / 100 * 10.0;
-            const sdrDarken = 1 - parseFloat(controls.contrast.value) / 100 * 0.95;
+            const exposureVal = parseFloat(controls.exposure.value) / 100;
+            const hdrBoost = 1 + (exposureVal * exposureVal) * 5.0; // Quadratic curve: 0% -> 1x, 50% -> 2.25x, 100% -> 6x
+            const sdrDarken = 1 - parseFloat(controls.contrast.value) / 100 * 0.95; // Max darken 0.05
 
             const params = {
                 highlights: parseFloat(controls.highlights.value) / 100,
