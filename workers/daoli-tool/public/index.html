@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OTTO PROJECTION /// TERMINAL</title>
+    <!-- Mermaid & SVG-Pan-Zoom -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* Palette: Cyber-Optic / Darkroom */
+            --bg-deep: #030303;
+            --bg-panel: #0a0a0a;
+            --bg-surface: #141414;
+            
+            --accent-primary: #00ff9d; /* Neon Mint */
+            --accent-secondary: #ff0055; /* Neon Red */
+            --accent-dim: rgba(0, 255, 157, 0.1);
+            
+            --text-main: #e0e0e0;
+            --text-muted: #666666;
+            --text-highlight: #ffffff;
+
+            --border-light: #333333;
+            --border-active: #00ff9d;
+
+            --font-display: 'Space Grotesk', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            
+            --spacing-unit: 8px;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: var(--font-display);
+            margin: 0;
+            padding: 0;
+            height: 100vh; /* Fixed height for app-like feel */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Disable body scroll */
+        }
+
+        /* --- Header --- */
+        .app-header {
+            flex: 0 0 auto; /* Fixed header height */
+            padding: calc(var(--spacing-unit) * 2);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(3, 3, 3, 0.95);
+            z-index: 100;
+        }
+
+        .brand {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: -0.5px;
+            color: var(--text-highlight);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brand::before {
+            content: '';
+            display: block;
+            width: 8px;
+            height: 8px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-primary);
+        }
+
+        .status-badge {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent-primary);
+            border: 1px solid var(--accent-primary);
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            text-transform: uppercase;
+        }
+
+        /* --- Main Layout --- */
+        .layout-grid {
+            display: flex;
+            flex-direction: column;
+            flex: 1; /* Take remaining height */
+            overflow: hidden; /* Internal scrolling */
+        }
+
+        @media (min-width: 1024px) {
+            .layout-grid {
+                display: grid;
+                grid-template-columns: 3fr 2fr;
+                overflow: hidden;
+            }
+        }
+
+        /* --- Viewport (Canvas) --- */
+        .viewport-section {
+            position: relative;
+            background: var(--bg-deep);
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid var(--border-light);
+            flex: 0 0 45vh; /* Mobile: Fixed height */
+            z-index: 10;
+        }
+
+        @media (min-width: 1024px) {
+            .viewport-section {
+                flex: auto; /* Reset flex for grid */
+                height: 100%;
+                border-bottom: none;
+                border-right: 1px solid var(--border-light);
+            }
+        }
+
+        .canvas-container {
+            width: 100%;
+            position: relative;
+            background-image: 
+                radial-gradient(circle at center, #1a1a1a 1px, transparent 1px),
+                linear-gradient(to right, #111 1px, transparent 1px),
+                linear-gradient(to bottom, #111 1px, transparent 1px);
+            background-size: 20px 20px, 40px 40px, 40px 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            flex: 1; /* Fill viewport section */
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            /* Initial transparency until loaded */
+            transition: opacity 0.3s ease;
+        }
+        
+        .viewport-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* --- Controls Panel --- */
+        .controls-section {
+            background: var(--bg-panel);
+            overflow-y: auto; /* Enable vertical scroll */
+            padding: calc(var(--spacing-unit) * 3);
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            flex: 1; /* Fill remaining space */
+            padding-bottom: 60px; /* Extra padding for mobile bottom */
+        }
+
+        @media (min-width: 1024px) {
+            .controls-section {
+                height: 100%;
+                padding-bottom: calc(var(--spacing-unit) * 3);
+            }
+        }
+
+        /* Section Headers */
+        .control-header {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* File Upload Styling */
+        .upload-zone {
+            position: relative;
+            width: 100%;
+            height: 120px;
+            border: 1px dashed var(--text-muted);
+            border-radius: var(--radius-md);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: var(--bg-surface);
+            overflow: hidden;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent-primary);
+            background: var(--accent-dim);
+        }
+
+        .upload-input {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .upload-label {
+            font-family: var(--font-mono);
+            color: var(--text-main);
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upload-icon {
+            font-size: 1.5rem;
+            color: var(--accent-primary);
+        }
+
+        /* Slider Controls */
+        .control-group {
+            margin-bottom: 24px;
+        }
+
+        .control-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .label-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .value-display {
+            font-family: var(--font-mono);
+            color: var(--accent-primary);
+            font-size: 0.85rem;
+            background: rgba(0, 255, 157, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            min-width: 48px;
+            text-align: right;
+        }
+
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .slider-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            color: var(--text-main);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 1.2rem;
+            transition: all 0.1s;
+        }
+
+        .slider-btn:active {
+            background: var(--border-light);
+            transform: translateY(1px);
+        }
+
+        /* Custom Range Input */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: var(--border-light);
+            border-radius: 2px;
+            outline: none;
+            flex: 1;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--bg-deep);
+            border: 2px solid var(--accent-primary);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: var(--accent-primary);
+        }
+
+        /* Presets Grid */
+        .presets-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .preset-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            text-align: center;
+        }
+
+        .preset-card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 15px var(--accent-dim);
+        }
+
+        .preset-icon {
+            font-size: 1.5rem;
+        }
+
+        .preset-name {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        /* Action Buttons */
+        .action-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-family: var(--font-mono);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: var(--bg-deep);
+        }
+
+        .btn-primary:hover {
+            background: #00e68e;
+            box-shadow: 0 0 20px var(--accent-dim);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-main);
+            background: var(--bg-surface);
+        }
+        
+        /* Toggle Switch */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 8px 0;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: var(--border-light);
+            border-radius: 12px;
+            transition: background 0.3s;
+        }
+        
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        
+        input[type="checkbox"] {
+            display: none;
+        }
+        
+        input[type="checkbox"]:checked + .toggle-switch {
+            background: var(--accent-primary);
+        }
+        
+        input[type="checkbox"]:checked + .toggle-switch::after {
+            transform: translateX(20px);
+        }
+
+        /* Documentation & Mermaid */
+        .docs-section {
+            border-top: 1px solid var(--border-light);
+            padding-top: 32px;
+            margin-top: 16px;
+        }
+
+        .mermaid-container {
+            background: #fff;
+            padding: 0; /* Remove padding to maximize space */
+            height: 400px;
+            overflow: hidden;
+            display: flex; /* Flexbox to center/fill */
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #mermaid-chart {
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+
+        /* Mobile specific adjustments */
+        @media (max-width: 768px) {
+            .app-header {
+                padding: var(--spacing-unit) calc(var(--spacing-unit) * 2);
+            }
+            
+            .brand {
+                font-size: 1rem;
+            }
+            
+            .canvas-container {
+                min-height: 50vh;
+            }
+            
+            .controls-section {
+                padding: calc(var(--spacing-unit) * 2);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="brand">OTTO PROJECTION</div>
+        <div class="status-badge">SYSTEM READY</div>
+    </header>
+
+    <div class="layout-grid">
+        <!-- Canvas Viewport -->
+        <section class="viewport-section">
+            <div class="viewport-overlay">
+                MODE: STEREOGRAPHIC<br>
+                RES: HIGH_DPI
+            </div>
+            <div class="canvas-container" id="canvasContainer">
+                <canvas id="outputCanvas"></canvas>
+            </div>
+        </section>
+
+        <!-- Control Panel -->
+        <aside class="controls-section">
+            
+            <!-- Input Source -->
+            <div>
+                <div class="control-header">01 // INPUT SOURCE</div>
+                <div class="upload-zone">
+                    <input type="file" id="imageUpload" accept="image/*" class="upload-input">
+                    <div class="upload-label">
+                        <span class="upload-icon">⊕</span>
+                        <span>LOAD IMAGE DATA</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Presets -->
+            <div>
+                <div class="control-header">02 // PRESET PROTOCOLS</div>
+                <div class="presets-grid">
+                    <div class="preset-card" data-preset="daoli">
+                        <span class="preset-icon">😂</span>
+                        <span class="preset-name">PRINCIPLE</span>
+                        <!-- 说的道理 -->
+                    </div>
+                    <div class="preset-card" data-preset="lizitou">
+                        <span class="preset-icon">🌰</span>
+                        <span class="preset-name">CHESTNUT</span>
+                        <!-- 栗子头 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Parameters -->
+            <div>
+                <div class="control-header">03 // PROJECTION PARAMETERS</div>
+                
+                <!-- Scale -->
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <span class="label-text">SCALE FACTOR</span>
+                        <span id="scaleVal" class="value-display">1.50</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <button class="slider-btn" data-input="scaleInput" data-adjust="-0.1">-</button>
+                        <input type="range" id="scaleInput" min="0.1" max="5.0" step="0.1" value="1.5">
+                        <button class="slider-btn" data-input="scaleInput" data-adjust="0.1">+</button>
+                    </div>
+                </div>
+
+                <!-- Rotation -->
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <span class="label-text">ROTATION X (ALPHA)</span>
+                        <span id="alphaVal" class="value-display">0°</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <button class="slider-btn" data-input="alphaInput" data-adjust="-1">-</button>
+                        <input type="range" id="alphaInput" min="-180" max="180" step="1" value="0">
+                        <button class="slider-btn" data-input="alphaInput" data-adjust="1">+</button>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <span class="label-text">ROTATION Y (BETA)</span>
+                        <span id="betaVal" class="value-display">-5°</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <button class="slider-btn" data-input="betaInput" data-adjust="-1">-</button>
+                        <input type="range" id="betaInput" min="-180" max="180" step="1" value="-5">
+                        <button class="slider-btn" data-input="betaInput" data-adjust="1">+</button>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <span class="label-text">ROTATION Z (GAMMA)</span>
+                        <span id="gammaVal" class="value-display">0°</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <button class="slider-btn" data-input="gammaInput" data-adjust="-1">-</button>
+                        <input type="range" id="gammaInput" min="-180" max="180" step="1" value="0">
+                        <button class="slider-btn" data-input="gammaInput" data-adjust="1">+</button>
+                    </div>
+                </div>
+
+                <!-- Offset -->
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <span class="label-text">OFFSET X</span>
+                        <span id="offsetHorVal" class="value-display">0.00</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <button class="slider-btn" data-input="offsetHorInput" data-adjust="-0.05">-</button>
+                        <input type="range" id="offsetHorInput" min="-1" max="1" step="0.01" value="0.0">
+                        <button class="slider-btn" data-input="offsetHorInput" data-adjust="0.05">+</button>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <span class="label-text">OFFSET Y</span>
+                        <span id="offsetVerVal" class="value-display">0.40</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <button class="slider-btn" data-input="offsetVerInput" data-adjust="-0.05">-</button>
+                        <input type="range" id="offsetVerInput" min="-1" max="1" step="0.01" value="0.4">
+                        <button class="slider-btn" data-input="offsetVerInput" data-adjust="0.05">+</button>
+                    </div>
+                </div>
+
+                <label class="toggle-row">
+                    <span class="label-text">SHOW GRID ASSIST</span>
+                    <input type="checkbox" id="showGrid">
+                    <div class="toggle-switch"></div>
+                </label>
+            </div>
+
+            <!-- Action -->
+            <div class="action-row">
+                <button id="downloadBtn" class="btn btn-primary">DOWNLOAD RENDER</button>
+            </div>
+
+            <!-- Docs -->
+            <div class="docs-section">
+                <div class="control-header">SYSTEM ARCHITECTURE (DOCS)</div>
+                <div class="mermaid-container" id="diagram-container">
+                    <div class="mermaid" id="mermaid-chart">
+                        flowchart LR
+                            subgraph Screen Space
+                                Pix[Screen Pixels]
+                            end
+    
+                            subgraph 3D Space
+                                Q[Planar Coord Q]
+                                P[Spherical Coord P]
+                                P_rot[Rotated P']
+                            end
+    
+                            subgraph Texture Space
+                                UV[Texture UV]
+                                Img[Final Color]
+                            end
+    
+                            Pix -->|1. Offset| Q
+                            Q -->|2. Inverse Stereographic| P
+                            P -->|3. Rotation| P_rot
+                            P_rot -->|4. Mapping| UV
+                            UV -->|5. Sample| Img
+    
+                            style Pix fill:#e0e7ff,stroke:#2563eb
+                            style Img fill:#dcfce7,stroke:#16a34a
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+    </div>
+
+<script>
+/**
+ * WebGL Renderer Logic (Unchanged but formatting preserved)
+ */
+const vsSource = `
+    attribute vec4 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    varying highp vec2 vTextureCoord;
+    void main(void) {
+        gl_Position = aVertexPosition;
+        vTextureCoord = aTextureCoord;
+    }
+`;
+
+const fsSource = `
+    precision highp float;
+    varying highp vec2 vTextureCoord;
+    uniform sampler2D uSampler;
+    uniform vec2 uResolution;
+    uniform float uScale;
+    uniform vec3 uRotation;
+    uniform vec2 uOffset;
+    uniform float uRadius;
+    uniform float uShowGrid;
+    const float PI = 3.14159265359;
+    const float TWO_PI = 6.28318530718;
+
+    mat3 computeRotationMatrix(vec3 rotation) {
+        float cosA = cos(rotation.x);
+        float sinA = sin(rotation.x);
+        float cosB = cos(rotation.y);
+        float sinB = sin(rotation.y);
+        float cosG = cos(rotation.z);
+        float sinG = sin(rotation.z);
+        return mat3(
+            cosG * cosB,                              
+            sinG * cosB,                              
+            -sinB,                                    
+            cosG * sinB * sinA - sinG * cosA,         
+            sinG * sinB * sinA + cosG * cosA,         
+            cosB * sinA,                              
+            cosG * sinB * cosA + sinG * sinA,         
+            sinG * sinB * cosA - cosG * sinA,         
+            cosB * cosA                               
+        );
+    }
+
+    vec3 projectToSphere(float row, float col) {
+        float x = row + (uOffset.y - 0.5) * uResolution.y;
+        float y = col + (uOffset.x - 0.5) * uResolution.x;
+        float r = uRadius;
+        float k = 2.0 * r * r / (x * x + y * y + r * r);
+        return vec3(k * x, k * y, (k - 1.0) * r);
+    }
+
+    vec2 getPixOnImg(vec3 point) {
+        float r = uRadius;
+        vec3 p = point;
+        p.z = clamp(p.z, -r, r);
+        float row_norm = acos(p.z / r) / PI;
+        float col_norm = atan(p.y, p.x) / TWO_PI + 0.5;
+        return vec2(col_norm, row_norm);  // (texU, texV)
+    }
+
+    void main(void) {
+        float row = (1.0 - vTextureCoord.y) * uResolution.y;
+        float col = vTextureCoord.x * uResolution.x;
+
+        vec3 spherePoint = projectToSphere(row, col);
+        mat3 rotMat = computeRotationMatrix(uRotation);
+        vec3 rotatedPoint = rotMat * spherePoint;
+        vec2 imgCoord = getPixOnImg(rotatedPoint);
+
+        float texU = fract(imgCoord.x);
+        float texV = imgCoord.y;
+
+        vec4 color;
+        if (texV < 0.0 || texV > 1.0) {
+            color = vec4(0.0, 0.0, 0.0, 0.0); // Transparent background for off-texture
+        } else {
+            color = texture2D(uSampler, vec2(texU, texV));
+        }
+
+        if (uShowGrid > 0.5) {
+            float gridSize = 10.0;
+            float lineWidth = 0.02;
+            
+            if (texV >= 0.0 && texV <= 1.0) {
+                float uPhase = fract(texU * gridSize);
+                float vPhase = fract(texV * gridSize);
+                
+                // Distance to nearest line (at 0 or 1)
+                float distU = min(uPhase, 1.0 - uPhase);
+                float distV = min(vPhase, 1.0 - vPhase);
+                
+                // Smooth anti-aliased lines
+                float lineFactor = 0.0;
+                float feather = 0.01;
+                
+                lineFactor = max(lineFactor, 1.0 - smoothstep(lineWidth - feather, lineWidth + feather, distU));
+                lineFactor = max(lineFactor, 1.0 - smoothstep(lineWidth - feather, lineWidth + feather, distV));
+                
+                if (lineFactor > 0.0) {
+                    color = mix(color, vec4(0.0, 1.0, 0.62, 1.0), lineFactor * 0.5);
+                }
+            }
+        }
+        gl_FragColor = color;
+    }
+`;
+
+class WebGLRenderer {
+    constructor(canvas) {
+        this.canvas = canvas;
+        // Try WebGL 2 first for NPOT texture REPEAT support
+        this.gl = canvas.getContext('webgl2', { antialias: true, preserveDrawingBuffer: true, alpha: true });
+        this.isWebGL2 = !!this.gl;
+        
+        if (!this.gl) {
+            console.warn('WebGL 2 not supported, falling back to WebGL 1. Texture wrapping may be limited.');
+            this.gl = canvas.getContext('webgl', { antialias: true, preserveDrawingBuffer: true, alpha: true });
+        }
+        
+        if (!this.gl) throw new Error('WebGL not supported');
+        this.resizeViewport();
+        this.initShaderProgram();
+        this.initBuffers();
+        this.texture = null;
+    }
+    resizeViewport() {
+        const container = this.canvas.parentElement;
+        const dpr = window.devicePixelRatio || 1;
+        const displayWidth = Math.floor(container.clientWidth * dpr);
+        const displayHeight = Math.floor(container.clientHeight * dpr);
+        
+        if (this.canvas.width !== displayWidth || this.canvas.height !== displayHeight) {
+            this.canvas.width = displayWidth;
+            this.canvas.height = displayHeight;
+            this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+        }
+    }
+    compileShader(type, source) {
+        const shader = this.gl.createShader(type);
+        this.gl.shaderSource(shader, source);
+        this.gl.compileShader(shader);
+        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+            console.error(this.gl.getShaderInfoLog(shader));
+            return null;
+        }
+        return shader;
+    }
+    initShaderProgram() {
+        const vs = this.compileShader(this.gl.VERTEX_SHADER, vsSource);
+        const fs = this.compileShader(this.gl.FRAGMENT_SHADER, fsSource);
+        const program = this.gl.createProgram();
+        this.gl.attachShader(program, vs);
+        this.gl.attachShader(program, fs);
+        this.gl.linkProgram(program);
+        this.program = program;
+        this.locations = {
+            attrib: { pos: this.gl.getAttribLocation(program, 'aVertexPosition'), uv: this.gl.getAttribLocation(program, 'aTextureCoord') },
+            uniform: {
+                resolution: this.gl.getUniformLocation(program, 'uResolution'),
+                scale: this.gl.getUniformLocation(program, 'uScale'),
+                rotation: this.gl.getUniformLocation(program, 'uRotation'),
+                offset: this.gl.getUniformLocation(program, 'uOffset'),
+                radius: this.gl.getUniformLocation(program, 'uRadius'),
+                showGrid: this.gl.getUniformLocation(program, 'uShowGrid'),
+                sampler: this.gl.getUniformLocation(program, 'uSampler')
+            }
+        };
+    }
+    initBuffers() {
+        const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+        this.posBuf = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.posBuf);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+        // Standard UV coords: bottom-left origin
+        const uvs = new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]);
+        this.uvBuf = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.uvBuf);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, uvs, this.gl.STATIC_DRAW);
+    }
+    loadTexture(img) {
+        if (this.texture) this.gl.deleteTexture(this.texture);
+        this.texture = this.gl.createTexture();
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+        
+        // WebGL 1 requires CLAMP_TO_EDGE for non-power-of-two textures.
+        // WebGL 2 supports REPEAT for any texture size.
+        const wrapModeS = this.isWebGL2 ? this.gl.REPEAT : this.gl.CLAMP_TO_EDGE;
+        
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, wrapModeS);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img);
+    }
+    render(params) {
+        this.resizeViewport();
+        // Clear with transparent black
+        this.gl.clearColor(0, 0, 0, 0); 
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+        this.gl.useProgram(this.program);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.posBuf);
+        this.gl.vertexAttribPointer(this.locations.attrib.pos, 2, this.gl.FLOAT, false, 0, 0);
+        this.gl.enableVertexAttribArray(this.locations.attrib.pos);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.uvBuf);
+        this.gl.vertexAttribPointer(this.locations.attrib.uv, 2, this.gl.FLOAT, false, 0, 0);
+        this.gl.enableVertexAttribArray(this.locations.attrib.uv);
+
+        this.gl.uniform2f(this.locations.uniform.resolution, this.canvas.width, this.canvas.height);
+        this.gl.uniform1f(this.locations.uniform.scale, params.scale);
+        this.gl.uniform3f(this.locations.uniform.rotation, params.alpha, params.beta, params.gamma);
+        this.gl.uniform2f(this.locations.uniform.offset, params.offsetHor, params.offsetVer);
+        this.gl.uniform1f(this.locations.uniform.showGrid, params.showGrid ? 1.0 : 0.0);
+        const radius = Math.min(this.canvas.width, this.canvas.height) / 10.0 * params.scale;
+        this.gl.uniform1f(this.locations.uniform.radius, radius);
+
+        if (this.texture) {
+            this.gl.activeTexture(this.gl.TEXTURE0);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+            this.gl.uniform1i(this.locations.uniform.sampler, 0);
+        }
+        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+    }
+}
+
+/**
+ * UI & Interaction Logic
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('outputCanvas');
+    let renderer;
+    try {
+        renderer = new WebGLRenderer(canvas);
+    } catch (e) {
+        alert("WebGL Initialize Failed: " + e.message);
+        return;
+    }
+
+    // UI Elements
+    const inputs = {
+        img: document.getElementById('imageUpload'),
+        scale: document.getElementById('scaleInput'),
+        alpha: document.getElementById('alphaInput'),
+        beta: document.getElementById('betaInput'),
+        gamma: document.getElementById('gammaInput'),
+        offsetHor: document.getElementById('offsetHorInput'),
+        offsetVer: document.getElementById('offsetVerInput'),
+        showGrid: document.getElementById('showGrid')
+    };
+
+    const labels = {
+        scale: document.getElementById('scaleVal'),
+        alpha: document.getElementById('alphaVal'),
+        beta: document.getElementById('betaVal'),
+        gamma: document.getElementById('gammaVal'),
+        offsetHor: document.getElementById('offsetHorVal'),
+        offsetVer: document.getElementById('offsetVerVal')
+    };
+
+    let sourceImage = null;
+    let isImageLoaded = false;
+    let rafId = null;
+
+    // --- Presets ---
+    const presets = {
+        daoli: { scale: 1.5, alpha: 0, beta: -5, gamma: 0, offsetHor: 0, offsetVer: 0.4 },
+        lizitou: { scale: 1.0, alpha: 0, beta: 155, gamma: 0, offsetHor: 0, offsetVer: -0.4 }
+    };
+
+    function loadPreset(presetName) {
+        const preset = presets[presetName];
+        if (!preset) return;
+
+        inputs.scale.value = preset.scale;
+        inputs.alpha.value = preset.alpha;
+        inputs.beta.value = preset.beta;
+        inputs.gamma.value = preset.gamma;
+        inputs.offsetHor.value = preset.offsetHor;
+        inputs.offsetVer.value = preset.offsetVer;
+
+        updateLabels();
+        scheduleRender();
+    }
+
+    document.querySelectorAll('.preset-card').forEach(btn => {
+        btn.addEventListener('click', () => {
+            loadPreset(btn.dataset.preset);
+        });
+    });
+
+    // --- Adjust Buttons (+/-) ---
+    document.querySelectorAll('.slider-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const inputId = btn.dataset.input;
+            const adjustVal = parseFloat(btn.dataset.adjust);
+            const input = document.getElementById(inputId);
+
+            let newVal = parseFloat(input.value) + adjustVal;
+
+            // Handle limits
+            if (input.min) newVal = Math.max(parseFloat(input.min), newVal);
+            if (input.max) newVal = Math.min(parseFloat(input.max), newVal);
+
+            // Handle float precision for steps
+            if (input.step.includes('.')) {
+                newVal = parseFloat(newVal.toFixed(2));
+            }
+
+            input.value = newVal;
+            input.dispatchEvent(new Event('input')); // Trigger update
+        });
+    });
+
+    // --- Rendering Loop ---
+    function updateLabels() {
+        labels.scale.textContent = parseFloat(inputs.scale.value).toFixed(2);
+        labels.alpha.textContent = inputs.alpha.value + '°';
+        labels.beta.textContent = inputs.beta.value + '°';
+        labels.gamma.textContent = inputs.gamma.value + '°';
+        labels.offsetHor.textContent = parseFloat(inputs.offsetHor.value).toFixed(2);
+        labels.offsetVer.textContent = parseFloat(inputs.offsetVer.value).toFixed(2);
+    }
+
+    function render() {
+        // Even if no image is loaded, we can render the grid to show the system is active
+        const params = {
+            scale: parseFloat(inputs.scale.value),
+            alpha: parseFloat(inputs.alpha.value) * Math.PI / 180,
+            beta: parseFloat(inputs.beta.value) * Math.PI / 180,
+            gamma: parseFloat(inputs.gamma.value) * Math.PI / 180,
+            offsetHor: parseFloat(inputs.offsetHor.value),
+            offsetVer: parseFloat(inputs.offsetVer.value),
+            showGrid: inputs.showGrid.checked
+        };
+        renderer.render(params);
+    }
+
+    function scheduleRender() {
+        updateLabels();
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(render);
+    }
+
+    // Bind Inputs
+    Object.values(inputs).forEach(el => {
+        if (el.type === 'range' || el.type === 'checkbox') {
+            el.addEventListener('input', scheduleRender);
+        }
+    });
+
+    // Image Upload
+    inputs.img.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        sourceImage = new Image();
+        sourceImage.onload = () => {
+            isImageLoaded = true;
+            renderer.loadTexture(sourceImage);
+            scheduleRender();
+            URL.revokeObjectURL(url);
+        };
+        sourceImage.src = url;
+    });
+
+    // Download
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+        if (!isImageLoaded) {
+            alert("Please load an image first.");
+            return;
+        }
+        
+        // 1. Save current grid state
+        const wasGridEnabled = inputs.showGrid.checked;
+        
+        // 2. Force grid off for the download render (or respect user choice if we add UI later)
+        inputs.showGrid.checked = false;
+        render();
+
+        // Double RAF to ensure layout/paint happens before capture (mitigate async flicker)
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                 // 3. Capture image
+                const hash = Math.random().toString(36).substring(2, 8);
+                const size = `${canvas.width}x${canvas.height}`;
+                
+                const link = document.createElement('a');
+                link.download = `otto-${hash}-${size}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                // 4. Restore grid state and re-render view
+                inputs.showGrid.checked = wasGridEnabled;
+                render();
+            });
+        });
+    });
+
+    // Handle Window Resize
+    window.addEventListener('resize', () => {
+        scheduleRender();
+    });
+
+    // --- Mermaid & Pan Zoom Logic ---
+    mermaid.initialize({ 
+        startOnLoad: false, // We will manually run it
+        theme: 'dark',
+        securityLevel: 'loose' 
+    });
+
+    const mermaidEl = document.getElementById('mermaid-chart');
+    let panZoomInstance = null;
+    let isMermaidInitialized = false;
+
+    async function initMermaid() {
+        if (isMermaidInitialized) return;
+        
+        try {
+            await mermaid.run({ nodes: [mermaidEl] });
+            isMermaidInitialized = true;
+            
+            // Wait a tick for DOM update
+            requestAnimationFrame(() => {
+                const svg = mermaidEl.querySelector('svg');
+                if (svg) {
+                    // Force SVG to fill container
+                    svg.style.maxWidth = 'none';
+                    svg.style.width = '100%';
+                    svg.style.height = '100%';
+                    svg.setAttribute('width', '100%');
+                    svg.setAttribute('height', '100%');
+                    
+                    panZoomInstance = svgPanZoom(svg, {
+                        zoomEnabled: true,
+                        controlIconsEnabled: true,
+                        fit: true,
+                        center: true,
+                        minZoom: 0.1,
+                        maxZoom: 10
+                    });
+                    
+                    // Force resize update
+                    panZoomInstance.resize();
+                    panZoomInstance.fit();
+                    panZoomInstance.center();
+                }
+            });
+        } catch (err) {
+            console.error('Mermaid init failed:', err);
+        }
+    }
+    
+    // Initialize immediately
+    setTimeout(initMermaid, 100);
+
+    // Initial render to show empty grid
+    inputs.showGrid.checked = true; // Default grid on for cool look
+    scheduleRender();
+});
+</script>
+</body>
+</html>

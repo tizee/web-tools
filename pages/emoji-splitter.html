@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表情包切割工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .upload-section {
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            border-bottom: 1px solid #e0e6ff;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 40px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f4ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8f2ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.3rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .workspace-section {
+            display: flex;
+            gap: 0;
+            min-height: 600px;
+            background: #f8f9ff;
+        }
+
+        .left-panel {
+            flex: 0 0 480px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            border-right: 1px solid #e0e6ff;
+            overflow-y: auto;
+        }
+
+        .right-panel {
+            flex: 1;
+            padding: 40px;
+            background: white;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .preview-canvas {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+        }
+
+        .grid-info {
+            background: #f0f4ff;
+            border: 1px solid #e0e6ff;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin: 10px 0;
+            font-size: 0.9rem;
+            color: #666;
+            display: inline-block;
+        }
+
+        .controls {
+            background: #f8f9ff;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .input-group {
+            display: inline-block;
+            margin: 0 15px 20px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group input {
+            width: 120px;
+            padding: 12px 15px;
+            border: 2px solid #e0e6ff;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #6c757d, #495057);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 8px 25px rgba(108, 117, 125, 0.4);
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 16px;
+            padding: 10px 0;
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #667eea #f0f4ff;
+        }
+
+        .results-grid::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .results-grid::-webkit-scrollbar-track {
+            background: #f0f4ff;
+            border-radius: 4px;
+        }
+
+        .results-grid::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .results-grid::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        .emoji-item {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
+            border: 1px solid #e0e6ff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .emoji-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .emoji-canvas {
+            max-width: 110px;
+            max-height: 80px;
+            border-radius: 8px;
+            margin: 0 auto 8px;
+            display: block;
+            object-fit: contain;
+            background: #f8f9ff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .emoji-label {
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .status {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .upload-section {
+                padding: 20px;
+            }
+
+            .workspace-section {
+                flex-direction: column;
+                min-height: auto;
+            }
+
+            .left-panel {
+                flex: 1;
+                border-right: none;
+                border-bottom: 1px solid #e0e6ff;
+                padding: 20px;
+            }
+
+            .right-panel {
+                flex: 1;
+                padding: 20px;
+            }
+
+            .input-group {
+                display: block;
+                margin: 0 auto 20px;
+                text-align: center;
+            }
+
+            .results-grid {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 12px;
+                max-height: 60vh;
+            }
+
+            .emoji-item {
+                min-height: 100px;
+                padding: 10px;
+            }
+
+            .emoji-canvas {
+                max-width: 90px;
+                max-height: 65px;
+            }
+
+            .emoji-label {
+                font-size: 0.75rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .results-grid {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+                gap: 10px;
+            }
+
+            .emoji-item {
+                min-height: 90px;
+                padding: 8px;
+            }
+
+            .emoji-canvas {
+                max-width: 80px;
+                max-height: 55px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 表情包切割工具</h1>
+            <p>上传表情包集合图片，智能切割成单个表情</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📸</div>
+                <div class="upload-text">点击或拖拽上传表情包图片</div>
+                <div class="upload-hint">支持 JPG、PNG、GIF 格式</div>
+            </div>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <div class="workspace-section hidden" id="workspaceSection">
+            <div class="left-panel">
+                <h3 style="margin-bottom: 20px; color: #333;">原图预览</h3>
+                <div class="preview-container" id="previewContainer">
+                    <canvas id="previewCanvas" class="preview-canvas"></canvas>
+                    <canvas id="gridCanvas" class="grid-overlay"></canvas>
+                </div>
+
+                <div class="controls">
+                    <div class="input-group">
+                        <label for="rowsInput">行数：</label>
+                        <input type="number" id="rowsInput" min="1" max="20" value="4">
+                    </div>
+                    <div class="input-group">
+                        <label for="colsInput">列数：</label>
+                        <input type="number" id="colsInput" min="1" max="20" value="4">
+                    </div>
+                    <div id="gridInfo" class="grid-info">
+                        网格信息：<span id="gridDimensions"></span>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <label for="zipNameInput">ZIP文件名：</label>
+                        <input type="text" id="zipNameInput" placeholder="默认使用时间戳" style="width: 200px;">
+                    </div>
+                    <button class="btn" id="downloadBtn">📦 导出 ZIP 包</button>
+                    <button class="btn btn-secondary" id="resetBtn">🔄 重新上传</button>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <h3 style="margin-bottom: 20px; color: #333;">切割预览</h3>
+                <div id="status" class="status hidden"></div>
+                <div class="results-grid" id="resultsGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CDN 引入所需库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <script>
+        class EmojiSplitter {
+            constructor() {
+                this.originalImage = null;
+                this.splitImages = [];
+                this.initializeElements();
+                this.bindEvents();
+            }
+
+            initializeElements() {
+                this.uploadArea = document.getElementById('uploadArea');
+                this.fileInput = document.getElementById('fileInput');
+                this.uploadSection = document.querySelector('.upload-section');
+                this.workspaceSection = document.getElementById('workspaceSection');
+                this.previewCanvas = document.getElementById('previewCanvas');
+                this.gridCanvas = document.getElementById('gridCanvas');
+                this.previewContainer = document.getElementById('previewContainer');
+                this.rowsInput = document.getElementById('rowsInput');
+                this.colsInput = document.getElementById('colsInput');
+                this.zipNameInput = document.getElementById('zipNameInput');
+                this.resultsGrid = document.getElementById('resultsGrid');
+                this.status = document.getElementById('status');
+                this.downloadBtn = document.getElementById('downloadBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.gridInfo = document.getElementById('gridInfo');
+                this.gridDimensions = document.getElementById('gridDimensions');
+            }
+
+            bindEvents() {
+                // 上传区域事件
+                this.uploadArea.addEventListener('click', () => this.fileInput.click());
+                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+
+                // 拖拽事件
+                this.uploadArea.addEventListener('dragover', (e) => this.handleDragOver(e));
+                this.uploadArea.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+                this.uploadArea.addEventListener('drop', (e) => this.handleDrop(e));
+
+                // 下载和重置按钮事件
+                this.downloadBtn.addEventListener('click', () => this.downloadZIP());
+                this.resetBtn.addEventListener('click', () => this.reset());
+
+                // 输入框事件 - 实时切割
+                this.rowsInput.addEventListener('input', () => {
+                    this.validateInputs();
+                    this.drawGridLines();
+                    this.splitImageAuto();
+                });
+                this.colsInput.addEventListener('input', () => {
+                    this.validateInputs();
+                    this.drawGridLines();
+                    this.splitImageAuto();
+                });
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                this.uploadArea.classList.add('dragover');
+            }
+
+            handleDragLeave(e) {
+                e.preventDefault();
+                this.uploadArea.classList.remove('dragover');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                this.uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    this.processFile(files[0]);
+                }
+            }
+
+            handleFileSelect(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    this.processFile(file);
+                }
+            }
+
+            processFile(file) {
+                // 验证文件类型
+                if (!file.type.startsWith('image/')) {
+                    this.showStatus('请选择图片文件！', 'error');
+                    return;
+                }
+
+                // 验证文件大小 (最大 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    this.showStatus('文件大小不能超过 10MB！', 'error');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        this.originalImage = img;
+                        this.showPreview(img);
+                        this.showStatus('图片上传成功！', 'success');
+                    };
+                    img.onerror = () => {
+                        this.showStatus('图片加载失败，请检查文件格式！', 'error');
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            showPreview(img) {
+                this.originalImage = img;
+
+                // 设置canvas尺寸
+                const maxWidth = 400;
+                const maxHeight = 400;
+                let displayWidth = img.width;
+                let displayHeight = img.height;
+
+                // 计算缩放比例
+                if (displayWidth > maxWidth) {
+                    displayHeight = (maxWidth / displayWidth) * displayHeight;
+                    displayWidth = maxWidth;
+                }
+                if (displayHeight > maxHeight) {
+                    displayWidth = (maxHeight / displayHeight) * displayWidth;
+                    displayHeight = maxHeight;
+                }
+
+                // 设置预览canvas
+                this.previewCanvas.width = displayWidth;
+                this.previewCanvas.height = displayHeight;
+                const ctx = this.previewCanvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
+
+                // 设置网格canvas
+                this.gridCanvas.width = displayWidth;
+                this.gridCanvas.height = displayHeight;
+
+                // 隐藏上传区域，显示工作区
+                this.uploadSection.classList.add('hidden');
+                this.workspaceSection.classList.remove('hidden');
+                this.splitImages = [];
+
+                // 绘制网格线
+                this.drawGridLines();
+
+                // 自动切割
+                this.splitImageAuto();
+            }
+
+            drawGridLines() {
+                if (!this.originalImage || !this.gridCanvas) {
+                    return;
+                }
+
+                const rows = parseInt(this.rowsInput.value) || 1;
+                const cols = parseInt(this.colsInput.value) || 1;
+                const ctx = this.gridCanvas.getContext('2d');
+
+                // 清除之前的网格线
+                ctx.clearRect(0, 0, this.gridCanvas.width, this.gridCanvas.height);
+
+                if (!this.validateInputs()) {
+                    return;
+                }
+
+                const cellWidth = this.gridCanvas.width / cols;
+                const cellHeight = this.gridCanvas.height / rows;
+
+                // 设置网格线样式
+                ctx.strokeStyle = '#667eea';
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.8;
+
+                // 绘制垂直线
+                for (let i = 1; i < cols; i++) {
+                    const x = i * cellWidth;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, this.gridCanvas.height);
+                    ctx.stroke();
+                }
+
+                // 绘制水平线
+                for (let i = 1; i < rows; i++) {
+                    const y = i * cellHeight;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(this.gridCanvas.width, y);
+                    ctx.stroke();
+                }
+
+                // 绘制边框
+                ctx.strokeStyle = '#764ba2';
+                ctx.lineWidth = 3;
+                ctx.globalAlpha = 1;
+                ctx.strokeRect(0, 0, this.gridCanvas.width, this.gridCanvas.height);
+
+                ctx.globalAlpha = 1;
+
+                // 更新网格信息显示
+                this.updateGridInfo(rows, cols, cellWidth, cellHeight);
+            }
+
+            updateGridInfo(rows, cols, cellWidth, cellHeight) {
+                if (!this.validateInputs()) {
+                    this.gridInfo.classList.add('hidden');
+                    return;
+                }
+
+                this.gridInfo.classList.remove('hidden');
+                const totalEmojis = rows * cols;
+                const originalWidth = this.originalImage.width;
+                const originalHeight = this.originalImage.height;
+                const actualCellWidth = Math.floor(originalWidth / cols);
+                const actualCellHeight = Math.floor(originalHeight / rows);
+
+                this.gridDimensions.textContent =
+                    `${rows}行 × ${cols}列 = ${totalEmojis}个表情，每个 ${actualCellWidth}×${actualCellHeight}px`;
+            }
+
+            validateInputs() {
+                const rows = parseInt(this.rowsInput.value);
+                const cols = parseInt(this.colsInput.value);
+
+                if (rows < 1 || rows > 20 || cols < 1 || cols > 20) {
+                    return false;
+                }
+
+                return true;
+            }
+
+            splitImageAuto() {
+                if (!this.originalImage || !this.validateInputs()) {
+                    return;
+                }
+
+                const rows = parseInt(this.rowsInput.value);
+                const cols = parseInt(this.colsInput.value);
+
+                try {
+                    this.performSplit(rows, cols);
+                    this.displayResults();
+                    this.hideStatus();
+                } catch (error) {
+                    this.showStatus('切割失败：' + error.message, 'error');
+                }
+            }
+
+            performSplit(rows, cols) {
+                this.splitImages = [];
+
+                const imgWidth = this.originalImage.width;
+                const imgHeight = this.originalImage.height;
+
+                // 计算每个表情的实际尺寸，保持原始比例
+                const cellWidth = Math.floor(imgWidth / cols);
+                const cellHeight = Math.floor(imgHeight / rows);
+
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = cellWidth;
+                        canvas.height = cellHeight;
+
+                        const ctx = canvas.getContext('2d');
+
+                        // 计算源图片中的位置
+                        const srcX = col * cellWidth;
+                        const srcY = row * cellHeight;
+
+                        // 绘制裁剪后的表情
+                        ctx.drawImage(
+                            this.originalImage,
+                            srcX, srcY, cellWidth, cellHeight,
+                            0, 0, cellWidth, cellHeight
+                        );
+
+                        this.splitImages.push({
+                            canvas: canvas,
+                            name: `emoji_${row + 1}_${col + 1}.png`,
+                            dataURL: canvas.toDataURL('image/png'),
+                            width: cellWidth,
+                            height: cellHeight
+                        });
+                    }
+                }
+            }
+
+            displayResults() {
+                this.resultsGrid.innerHTML = '';
+
+                this.splitImages.forEach((image, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'emoji-item';
+
+                    const canvas = document.createElement('canvas');
+                    canvas.className = 'emoji-canvas';
+
+                    // 使用实际尺寸，针对Grid布局优化显示尺寸
+                    const actualWidth = image.width;
+                    const actualHeight = image.height;
+
+                    // Grid布局优化：限制显示尺寸避免溢出
+                    const maxDisplayWidth = 110;
+                    const maxDisplayHeight = 80;
+
+                    // 计算最佳显示尺寸，保持宽高比
+                    const widthRatio = maxDisplayWidth / actualWidth;
+                    const heightRatio = maxDisplayHeight / actualHeight;
+                    const scale = Math.min(widthRatio, heightRatio, 1);
+
+                    const displayWidth = Math.floor(actualWidth * scale);
+                    const displayHeight = Math.floor(actualHeight * scale);
+
+                    canvas.width = displayWidth;
+                    canvas.height = displayHeight;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(image.canvas, 0, 0, displayWidth, displayHeight);
+
+                    const label = document.createElement('div');
+                    label.className = 'emoji-label';
+                    label.textContent = `表情 ${index + 1} (${actualWidth}×${actualHeight}px)`;
+                    label.style.fontSize = '0.8rem';
+                    label.style.marginTop = '4px';
+
+                    item.appendChild(canvas);
+                    item.appendChild(label);
+                    this.resultsGrid.appendChild(item);
+                });
+            }
+
+            async downloadZIP() {
+                if (this.splitImages.length === 0) {
+                    this.showStatus('没有可下载的表情！', 'error');
+                    return;
+                }
+
+                this.showStatus('正在打包 ZIP 文件...', 'info');
+                this.downloadBtn.disabled = true;
+
+                try {
+                    const zip = new JSZip();
+
+                    // 添加所有图片到 ZIP
+                    for (let i = 0; i < this.splitImages.length; i++) {
+                        const image = this.splitImages[i];
+                        const base64Data = image.dataURL.split(',')[1];
+                        const binaryData = atob(base64Data);
+                        const arrayBuffer = new ArrayBuffer(binaryData.length);
+                        const uint8Array = new Uint8Array(arrayBuffer);
+
+                        for (let j = 0; j < binaryData.length; j++) {
+                            uint8Array[j] = binaryData.charCodeAt(j);
+                        }
+
+                        zip.file(image.name, uint8Array, { binary: true });
+                    }
+
+                    // 生成 ZIP 文件
+                    const content = await zip.generateAsync({ type: 'blob' });
+
+                    // 下载文件 - 使用自定义文件名或默认时间戳
+                    let fileName = this.zipNameInput.value.trim();
+                    if (!fileName) {
+                        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                        fileName = `emojis_${timestamp}`;
+                    }
+                    // 确保文件名以.zip结尾
+                    if (!fileName.toLowerCase().endsWith('.zip')) {
+                        fileName += '.zip';
+                    }
+                    saveAs(content, fileName);
+
+                    this.showStatus('ZIP 文件下载成功！', 'success');
+                } catch (error) {
+                    this.showStatus('ZIP 打包失败：' + error.message, 'error');
+                } finally {
+                    this.downloadBtn.disabled = false;
+                }
+            }
+
+            reset() {
+                this.originalImage = null;
+                this.splitImages = [];
+                this.fileInput.value = '';
+                this.zipNameInput.value = '';
+                this.workspaceSection.classList.add('hidden');
+                this.uploadSection.classList.remove('hidden');
+                this.hideStatus();
+                this.resultsGrid.innerHTML = '';
+
+                // 清空canvas
+                if (this.previewCanvas) {
+                    const ctx = this.previewCanvas.getContext('2d');
+                    ctx.clearRect(0, 0, this.previewCanvas.width, this.previewCanvas.height);
+                }
+                if (this.gridCanvas) {
+                    const ctx = this.gridCanvas.getContext('2d');
+                    ctx.clearRect(0, 0, this.gridCanvas.width, this.gridCanvas.height);
+                }
+            }
+
+            showStatus(message, type) {
+                this.status.textContent = message;
+                this.status.className = `status ${type}`;
+                this.status.classList.remove('hidden');
+
+                if (type === 'info') {
+                    // 添加加载动画
+                    const loading = document.createElement('span');
+                    loading.className = 'loading';
+                    this.status.appendChild(loading);
+                }
+            }
+
+            hideStatus() {
+                this.status.classList.add('hidden');
+            }
+        }
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            new EmojiSplitter();
+        });
+
+        // 添加一些实用函数
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+</body>
+</html>

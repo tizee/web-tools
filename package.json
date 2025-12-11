@@ -7,10 +7,12 @@
     "dev:exif": "cd workers/exif-remover && wrangler dev",
     "dev:flowdown": "cd workers/flowdown-config && wrangler dev",
     "dev:hdr": "cd workers/hdr-tool && wrangler dev",
+    "dev:daoli": "cd workers/daoli-tool && wrangler dev",
     "deploy:exif": "cd workers/exif-remover && wrangler deploy",
     "deploy:flowdown": "cd workers/flowdown-config && wrangler deploy",
     "deploy:hdr": "cd workers/hdr-tool && wrangler deploy",
-    "deploy:all": "npm run deploy:exif && npm run deploy:flowdown && npm run deploy:hdr"
+    "deploy:daoli": "cd workers/daoli-tool && wrangler deploy",
+    "deploy:all": "pnpm run deploy:exif && pnpm run deploy:flowdown && pnpm run deploy:hdr && pnpm run deploy:daoli"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

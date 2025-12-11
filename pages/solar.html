@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solar Serpentine</title>
+  <style>
+    body { margin: 0; overflow: hidden; background-color: #000; }
+    canvas { display: block; cursor: default; }
+    #stats {
+      position: absolute; top: 10px; left: 10px;
+      font-family: 'Arial', sans-serif; font-size: 14px;
+      color: #000; background-color: rgba(255, 255, 255, 0.7);
+      padding: 5px 10px; border-radius: 5px; z-index: 10;
+    }
+    .lil-gui { z-index: 100 !important; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19"></script>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div id="stats"></div>
+
+  <script>
+    // ======================== Constants and Config ========================
+    const CONFIG = {
+      PLANET_COUNT: 9,
+      GALACTIC_TILT_DEG: 60.2,
+      PLANET_COLORS: ['#E5E5E5', '#E39E54', '#4CA6FF', '#FF6B6B', '#E8B53A',
+                     '#FFDC7C', '#C8E0E9', '#5565D0', '#A0826F'],
+      ORBITAL_RADII: [40, 60, 80, 110, 160, 210, 260, 300, 340],
+      ORBITAL_PERIODS: [88, 225, 365.25, 687, 4333, 10759, 30687, 60190, 90560],
+
+      INITIAL: {
+        viewAngleEcliptic: 90,
+        viewAngleHorizontal: -30,
+        viewAngleRoll: 0,
+        zoomLevel: 0.5,
+        focalLength: 1100,
+        trailLength: 1800,
+        viewCenterX: 0.5,
+        timeScale: 100,
+        sunSpeedMultiplier: 1.0,
+        galacticGridBrightness: 0.5,
+        eclipticGridBrightness: 0.5,
+        sunTrailWidth: 2.0,
+        planetTrailWidth: 2.0,
+        showGalacticGrid: true,
+        showEclipticGrid: true,
+        showAxisHelper: true
+      },
+
+      AXIS: {
+        PADDING: 16, // Padding from canvas edge for the background box
+        LINE_WIDTH: 2,
+        FONT: '12px Arial',
+        COLOR_X: '#E67373',
+        COLOR_Y: '#73E673',
+        COLOR_Z: '#7373E6',
+        LABEL_COLOR: '#FFFFFF',
+        ARROW_LENGTH: 8,
+        ARROW_WIDTH: 12,
+        BG_COLOR: 'rgba(40, 40, 40, 0.6)',
+        BG_SIZE: 140, // Size of the background square (clickable area)
+        DRAW_AREA_SCALE: 0.6, // Draw axes of percentage of the BG box radius
+        DRAG_SENSITIVITY: { H: 0.5, V: 0.5, R: 0.5 },
+        LABEL_OFFSET: 8 // Extra offset for labels from arrow tip
+      },
+
+      GRID: {
+        SIZE: 400,
+        STEP: 50,
+        DETAIL: 5,
+        COLOR: 'rgba(255, 100, 100, 0.5)'
+      }
+    };
+
+    // ======================== Core ========================
+    class SolarSystem {
+      constructor() {
+        this.planets = [];
+        this.sunPosition = { x: 0, y: 0, z: 0 };
+        this.earthDays = 0;
+        this.initPlanets();
+      }
+
+      initPlanets() {
+        this.planets = [];
+        this.earthDays = 0;
+        this.sunPosition = { x: 0, y: 0, z: 0 };
+
+        for (let i = 0; i < CONFIG.PLANET_COUNT; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          this.planets.push({
+            angle: angle,
+            radius: CONFIG.ORBITAL_RADII[i],
+            color: CONFIG.PLANET_COLORS[i],
+            x: 0, y: 0, z: 0
+          });
+        }
+        this.update(0);
+      }
+
+      update(elapsedDays) {
+        this.earthDays += elapsedDays;
+
+        const earthOrbitCircumference = 2 * Math.PI * CONFIG.ORBITAL_RADII[2];
+        const sunDistancePerYear = 7 * earthOrbitCircumference;
+        const sunDistancePerDay = sunDistancePerYear / 365.25;
+        this.sunPosition.x += elapsedDays * sunDistancePerDay;
+
+        const tiltRad = CONFIG.GALACTIC_TILT_DEG * Math.PI / 180;
+        const cosTilt = Math.cos(tiltRad);
+        const sinTilt = Math.sin(tiltRad);
+
+        this.planets.forEach((planet, i) => {
+          const period = CONFIG.ORBITAL_PERIODS[i];
+          planet.angle += (2 * Math.PI / period) * elapsedDays;
+
+          const eclipticX = planet.radius * Math.cos(planet.angle);
+          const eclipticZ = planet.radius * Math.sin(planet.angle);
+
+          planet.x = this.sunPosition.x + eclipticX * cosTilt;
+          planet.y = this.sunPosition.y - eclipticX * sinTilt;
+          planet.z = this.sunPosition.z + eclipticZ;
+        });
+      }
+    }
+
+    class TrailManager {
+      constructor() {
+        this.sunTrail = [];
+        this.planetTrails = Array(CONFIG.PLANET_COUNT).fill().map(() => []);
+      }
+
+      update(sunPos, planets, maxLength) {
+        this.sunTrail.push({ ...sunPos });
+        if (this.sunTrail.length > maxLength) this.sunTrail.shift();
+
+        planets.forEach((planet, i) => {
+          this.planetTrails[i].push({ x: planet.x, y: planet.y, z: planet.z });
+          if (this.planetTrails[i].length > maxLength) this.planetTrails[i].shift();
+        });
+      }
+
+      clear() {
+        this.sunTrail = [];
+        this.planetTrails.forEach(t => t.length = 0);
+      }
+    }
+
+    class Camera {
+      constructor(controls, solarSystem) {
+        this.controls = controls;
+        this.solarSystem = solarSystem;
+        this.sunPosition = { x: 0, y: 0, z: 0 };
+        this.update();
+      }
+
+      update() {
+        this.sunPosition = { ...this.solarSystem.sunPosition };
+
+        // 角度约束 (确保在 [-180, 180] 或 [0, 180] 范围内)
+        this.controls.viewAngleEcliptic = Math.max(0, Math.min(180, this.controls.viewAngleEcliptic));
+        this.controls.viewAngleHorizontal = ((this.controls.viewAngleHorizontal + 180) % 360) - 180;
+        this.controls.viewAngleRoll = ((this.controls.viewAngleRoll + 180) % 360) - 180;
+
+        // 计算三角函数值
+        const effectiveTiltDeg = 90 - this.controls.viewAngleEcliptic;
+        this.tiltRad = effectiveTiltDeg * Math.PI / 180;
+        this.cosTilt = Math.cos(this.tiltRad);
+        this.sinTilt = Math.sin(this.tiltRad);
+
+        this.horizontalRad = this.controls.viewAngleHorizontal * Math.PI / 180;
+        this.cosHorizontal = Math.cos(this.horizontalRad);
+        this.sinHorizontal = Math.sin(this.horizontalRad);
+
+        this.rollRad = this.controls.viewAngleRoll * Math.PI / 180;
+        this.cosRoll = Math.cos(this.rollRad);
+        this.sinRoll = Math.sin(this.rollRad);
+      }
+    }
+
+    class Renderer {
+      constructor(canvas) {
+        this.ctx = canvas.getContext('2d');
+        this.canvas = canvas;
+      }
+
+      clear() {
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      }
+
+      project(position, camera, focalLength, centerX) {
+        const relX = position.x - camera.sunPosition.x;
+        const relY = position.y - camera.sunPosition.y;
+        const relZ = position.z - camera.sunPosition.z;
+
+        // 1. Horizontal Rotation (around global Y)
+        const hX = relX * camera.cosHorizontal - relZ * camera.sinHorizontal;
+        const hZ = relX * camera.sinHorizontal + relZ * camera.cosHorizontal;
+
+        // 2. Vertical Tilt (around camera's X-axis after horizontal rotation)
+        const vY = relY * camera.cosTilt - hZ * camera.sinTilt;
+        const vZ = relY * camera.sinTilt + hZ * camera.cosTilt; // This is now depth along view direction before roll
+
+        // --- Roll Fix: Apply Roll Rotation here ---
+        // 3. Roll Rotation (around camera's Z-axis - the view direction)
+        const rolledX = hX * camera.cosRoll - vY * camera.sinRoll;
+        const rolledY = hX * camera.sinRoll + vY * camera.cosRoll;
+
+        // 4. Perspective Projection
+        const depth = focalLength + vZ; // Use vZ (depth before roll) for perspective
+        if (depth <= 0) return { x: NaN, y: NaN, scale: 0 };
+
+        const scale = Math.min(focalLength / depth, 50); // Perspective scale factor
+
+        // Project rolled coordinates onto the screen
+        return {
+          x: (rolledX * scale) + this.canvas.width * centerX, // Use rolledX
+          y: (rolledY * scale) + this.canvas.height / 2,    // Use rolledY
+          scale
+        };
+      }
+
+      drawTrail(points, color, width, camera, focalLength, centerX, zoom) {
+        if (points.length < 2) return;
+
+        this.ctx.beginPath();
+        let prevProj = this.project(points[0], camera, focalLength, centerX);
+        if (isFinite(prevProj.x)) {
+          this.ctx.moveTo(prevProj.x, prevProj.y);
+
+          for (let i = 1; i < points.length; i++) {
+            const currProj = this.project(points[i], camera, focalLength, centerX);
+            if (isFinite(currProj.x)) {
+              const dist = Math.hypot(currProj.x - prevProj.x, currProj.y - prevProj.y);
+              // Adjust maxDist check if needed, depends on zoom/roll interaction
+              const maxDist = Math.max(this.canvas.width, this.canvas.height) * 1.5 / zoom;
+
+              if (dist < maxDist) {
+                this.ctx.lineTo(currProj.x, currProj.y);
+              } else {
+                // If points are too far (likely due to wrapping around view), start new line segment
+                this.ctx.moveTo(currProj.x, currProj.y);
+              }
+              prevProj = currProj;
+            } else {
+              // If current point is not projectable, start new line segment next time
+               this.ctx.moveTo(NaN, NaN); // Effectively breaks the line
+            }
+          }
+
+          this.ctx.strokeStyle = color;
+          this.ctx.lineWidth = width / zoom;
+          this.ctx.stroke();
+        }
+      }
+
+      drawCelestialBody(projection, color, baseSize, zoom) {
+        if (projection.scale <= 0 || !isFinite(projection.x)) return;
+        // Adjust size calculation if needed, roll doesn't change perspective scale
+        const size = Math.max(1, baseSize * projection.scale) / zoom;
+        this.ctx.beginPath();
+        this.ctx.arc(projection.x, projection.y, size, 0, Math.PI * 2);
+        this.ctx.fillStyle = color;
+        this.ctx.fill();
+      }
+
+      drawEclipticGrid(camera, focalLength, centerX, brightness, zoom) {
+        const tiltRad = CONFIG.GALACTIC_TILT_DEG * Math.PI / 180;
+        const cosTilt = Math.cos(tiltRad);
+        const sinTilt = Math.sin(tiltRad);
+
+        for (let i = 0; i < CONFIG.PLANET_COUNT; i++) {
+          const radius = CONFIG.ORBITAL_RADII[i];
+          const segments = 180;
+          const color = CONFIG.PLANET_COLORS[i];
+
+          this.ctx.beginPath();
+          let firstPoint = true;
+          let lastFiniteProj = null; // Keep track of last valid point
+
+          for (let j = 0; j <= segments; j++) {
+            const angle = (j / segments) * Math.PI * 2;
+            const eclipticX = radius * Math.cos(angle);
+            const eclipticZ = radius * Math.sin(angle);
+
+            const galX = camera.sunPosition.x + eclipticX * cosTilt;
+            const galY = camera.sunPosition.y - eclipticX * sinTilt;
+            const galZ = camera.sunPosition.z + eclipticZ;
+
+            const proj = this.project(
+              { x: galX, y: galY, z: galZ },
+              camera,
+              focalLength,
+              centerX
+            );
+
+            if (isFinite(proj.x)) {
+              if (firstPoint) {
+                this.ctx.moveTo(proj.x, proj.y);
+                firstPoint = false;
+              } else if (lastFiniteProj) {
+                 // Check distance to prevent huge lines across screen from roll/projection artifacts
+                 const dist = Math.hypot(proj.x - lastFiniteProj.x, proj.y - lastFiniteProj.y);
+                 const maxDist = Math.max(this.canvas.width, this.canvas.height) * 1.5 / zoom;
+                 if (dist < maxDist) {
+                    this.ctx.lineTo(proj.x, proj.y);
+                 } else {
+                    this.ctx.moveTo(proj.x, proj.y); // Start new segment
+                 }
+              } else {
+                 this.ctx.moveTo(proj.x, proj.y); // Start after an infinite point
+              }
+              lastFiniteProj = proj; // Update last valid point
+            } else {
+              firstPoint = true; // Reset if point is not finite
+              lastFiniteProj = null;
+            }
+          }
+
+          const rgb = color.match(/\w\w/g).map(c => parseInt(c, 16));
+          this.ctx.strokeStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${brightness})`;
+          this.ctx.lineWidth = 0.5 / zoom;
+          this.ctx.stroke();
+        }
+      }
+
+      drawGalacticGrid(camera, focalLength, centerX, brightness, zoom) {
+        const gridSize = CONFIG.GRID.SIZE;
+        const gridStep = CONFIG.GRID.STEP;
+        const lineDetail = CONFIG.GRID.DETAIL;
+        const color = `rgba(255, 100, 100, ${brightness})`;
+
+        this.ctx.lineWidth = 0.5 / zoom;
+
+        const drawGridLine = (isXLine) => {
+            const outerLimit = gridSize;
+            const innerStep = gridStep;
+            const detailStep = innerStep / lineDetail;
+
+            for (let outer = -outerLimit; outer <= outerLimit; outer += innerStep) {
+                this.ctx.beginPath();
+                let firstPoint = true;
+                let lastFiniteProj = null;
+
+                for (let inner = -outerLimit; inner <= outerLimit; inner += detailStep) {
+                    const x = isXLine ? outer : inner;
+                    const z = isXLine ? inner : outer;
+
+                    const proj = this.project(
+                        { x: camera.sunPosition.x + x, y: camera.sunPosition.y, z: camera.sunPosition.z + z },
+                        camera,
+                        focalLength,
+                        centerX
+                    );
+
+                    if (isFinite(proj.x)) {
+                        if (firstPoint) {
+                            this.ctx.moveTo(proj.x, proj.y);
+                            firstPoint = false;
+                        } else if (lastFiniteProj) {
+                             const dist = Math.hypot(proj.x - lastFiniteProj.x, proj.y - lastFiniteProj.y);
+                             const maxDist = Math.max(this.canvas.width, this.canvas.height) * 1.5 / zoom;
+                             if (dist < maxDist) {
+                                this.ctx.lineTo(proj.x, proj.y);
+                             } else {
+                                this.ctx.moveTo(proj.x, proj.y);
+                             }
+                        } else {
+                            this.ctx.moveTo(proj.x, proj.y);
+                        }
+                        lastFiniteProj = proj;
+                    } else {
+                        firstPoint = true;
+                        lastFiniteProj = null;
+                    }
+                }
+                this.ctx.strokeStyle = color;
+                this.ctx.stroke();
+            }
+        };
+
+        drawGridLine(true); // Draw lines parallel to Z-axis (constant X)
+        drawGridLine(false); // Draw lines parallel to X-axis (constant Z)
+      }
+
+
+      drawAxisHelper(camera, zoom) {
+        const padding = CONFIG.AXIS.PADDING;
+        const bgSize = CONFIG.AXIS.BG_SIZE;
+
+        // Calculate background position (bottom-left corner)
+        const bgX = padding;
+        const bgY = this.canvas.height - padding - bgSize;
+
+        // Calculate origin for drawing axes (center of the background square)
+        const originX = bgX + bgSize / 2;
+        const originY = bgY + bgSize / 2;
+
+        // --- UI Fix: Calculate max draw radius based on scale ---
+        const maxDrawRadius = (bgSize / 2) * CONFIG.AXIS.DRAW_AREA_SCALE;
+
+        // Draw background square
+        this.ctx.fillStyle = CONFIG.AXIS.BG_COLOR;
+        this.ctx.fillRect(bgX, bgY, bgSize, bgSize);
+        this.ctx.strokeStyle = 'rgba(200, 200, 200, 0.7)';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(bgX, bgY, bgSize, bgSize);
+
+        const axes = [
+          { vector: [1, 0, 0], color: CONFIG.AXIS.COLOR_X, label: 'X' },
+          { vector: [0, 1, 0], color: CONFIG.AXIS.COLOR_Y, label: 'Y' },
+          { vector: [0, 0, 1], color: CONFIG.AXIS.COLOR_Z, label: 'Z' }
+        ];
+
+        this.ctx.lineWidth = CONFIG.AXIS.LINE_WIDTH;
+        this.ctx.font = CONFIG.AXIS.FONT;
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+
+        for (const axis of axes) {
+          const [wx, wy, wz] = axis.vector;
+
+          // Apply camera rotations (Horizontal -> Tilt -> Roll)
+          const hX = wx * camera.cosHorizontal - wz * camera.sinHorizontal;
+          const hZ = wx * camera.sinHorizontal + wz * camera.cosHorizontal;
+          const vY = wy * camera.cosTilt - hZ * camera.sinTilt;
+          // vZ is not needed for 2D projection direction, only depth
+          const screenX = hX * camera.cosRoll - vY * camera.sinRoll;
+          const screenY = hX * camera.sinRoll + vY * camera.cosRoll;
+
+          // --- UI Fix: Use maxDrawRadius for line length ---
+          const endX = originX + screenX * maxDrawRadius;
+          const endY = originY - screenY * maxDrawRadius; // Y is inverted
+
+          // Draw axis line
+          this.ctx.beginPath();
+          this.ctx.moveTo(originX, originY);
+          this.ctx.lineTo(endX, endY);
+          this.ctx.strokeStyle = axis.color;
+          this.ctx.stroke();
+
+          // Draw arrow head
+          const lineDx = endX - originX;
+          const lineDy = endY - originY;
+          const norm = Math.hypot(lineDx, lineDy) || 1;
+          const dx = lineDx / norm; // Normalized direction vector
+          const dy = lineDy / norm;
+
+          const arrowLen = CONFIG.AXIS.ARROW_LENGTH;
+          const arrowWidth = CONFIG.AXIS.ARROW_WIDTH;
+          const baseX = endX - dx * arrowLen; // Base of the arrowhead
+          const baseY = endY - dy * arrowLen;
+          const perpX = -dy; // Perpendicular vector
+          const perpY = dx;
+
+          const wing1X = baseX + perpX * arrowWidth / 2;
+          const wing1Y = baseY + perpY * arrowWidth / 2;
+          const wing2X = baseX - perpX * arrowWidth / 2;
+          const wing2Y = baseY - perpY * arrowWidth / 2;
+
+          this.ctx.beginPath();
+          this.ctx.moveTo(endX, endY); // Tip
+          this.ctx.lineTo(wing1X, wing1Y);
+          this.ctx.lineTo(wing2X, wing2Y);
+          this.ctx.closePath();
+          this.ctx.fillStyle = axis.color;
+          this.ctx.fill();
+
+          // Draw label
+          // --- UI Fix: Use LABEL_OFFSET ---
+          const labelOffset = arrowLen + CONFIG.AXIS.LABEL_OFFSET;
+          const labelX = endX + dx * labelOffset;
+          const labelY = endY + dy * labelOffset;
+          this.ctx.fillStyle = CONFIG.AXIS.LABEL_COLOR;
+          this.ctx.fillText(axis.label, labelX, labelY);
+        }
+      }
+
+      updateStats(fps, timeScale, days) {
+        this.stats.textContent = `FPS: ${Math.round(fps)} | Time Scale: ${timeScale.toFixed(0)} days/s | Days: ${Math.round(days)}`;
+      }
+    }
+
+    // ======================== App ========================
+    class SolarApp {
+      constructor() {
+        this.canvas = document.getElementById('canvas');
+        this.stats = document.getElementById('stats');
+
+        this.system = new SolarSystem();
+        this.trailManager = new TrailManager();
+        this.controls = { ...CONFIG.INITIAL };
+        this.camera = new Camera(this.controls, this.system);
+        this.renderer = new Renderer(this.canvas);
+        this.renderer.stats = this.stats;
+
+        this.lastFrameTime = performance.now();
+        this.fps = 0;
+        this.frameCount = 0;
+        this.isDraggingAxis = false;
+        this.dragStart = { x: 0, y: 0 };
+        this.dragStartAngles = { h: 0, v: 0, r: 0 };
+        this.axisHelperBounds = { x: 0, y: 0, width: 0, height: 0 }; // Initialized in resize
+
+        this.initGui();
+        this.initEventListeners();
+        this.resize(); // Call resize to set initial canvas size and bounds
+        this.animate();
+      }
+
+      initGui() {
+        this.gui = new lil.GUI();
+        this.gui.title("Galactic View Controls");
+
+        const viewFolder = this.gui.addFolder('View Controls');
+        // Store controllers for later update
+        this.guiControllers = {
+          ecliptic: viewFolder.add(this.controls, 'viewAngleEcliptic', 0, 180, 1)
+            .name('Vertical Angle').onChange(() => this.camera.update()),
+          horizontal: viewFolder.add(this.controls, 'viewAngleHorizontal', -180, 180, 1)
+            .name('Horizontal Angle').onChange(() => this.camera.update()),
+          roll: viewFolder.add(this.controls, 'viewAngleRoll', -180, 180, 1)
+            .name('Roll Angle').onChange(() => this.camera.update())
+        };
+        viewFolder.add(this.controls, 'zoomLevel', 0.1, 5.0, 0.05).name('Zoom Level');
+        viewFolder.add(this.controls, 'focalLength', 100, 5000, 10).name('Focal Length');
+        viewFolder.add(this.controls, 'viewCenterX', 0.1, 0.9, 0.01).name('View Center');
+
+        const motionFolder = this.gui.addFolder('Motion Controls');
+        motionFolder.add(this.controls, 'timeScale', 1, 10000, 1).name('Time Scale (days/sec)');
+        motionFolder.add(this.controls, 'sunSpeedMultiplier', 0, 10, 0.1).name('Sun Speed Multiplier');
+
+        const trailFolder = this.gui.addFolder('Trail Controls');
+        trailFolder.add(this.controls, 'trailLength', 0, 5000, 10).name('Trail Length');
+        trailFolder.add(this.controls, 'sunTrailWidth', 0.1, 3, 0.1).name('Sun Trail Width');
+        trailFolder.add(this.controls, 'planetTrailWidth', 0.1, 3, 0.1).name('Planet Trail Width');
+        trailFolder.add({ clear: () => this.trailManager.clear() }, 'clear').name('Clear Trails');
+
+        const visualFolder = this.gui.addFolder('Visual Aids');
+        visualFolder.add(this.controls, 'showGalacticGrid').name('Show Galactic Grid');
+        visualFolder.add(this.controls, 'showEclipticGrid').name('Show Ecliptic Orbits');
+        visualFolder.add(this.controls, 'showAxisHelper').name('Show Axis Helper');
+        visualFolder.add(this.controls, 'galacticGridBrightness', 0.1, 1, 0.1).name('Grid Brightness');
+        visualFolder.add(this.controls, 'eclipticGridBrightness', 0.1, 1, 0.1).name('Orbit Brightness');
+
+        this.gui.add({
+          reset: () => {
+            Object.assign(this.controls, CONFIG.INITIAL);
+            this.camera.update(); // Update camera after reset
+            this.system.initPlanets();
+            this.trailManager.clear();
+            // Update all GUI controllers after reset
+            this.updateGuiDisplay();
+          }
+        }, 'reset').name('Reset All');
+      }
+
+      // --- Roll Fix: Ensure roll controller is updated ---
+      updateGuiDisplay() {
+        if (this.guiControllers) {
+          this.guiControllers.ecliptic.updateDisplay();
+          this.guiControllers.horizontal.updateDisplay();
+          this.guiControllers.roll.updateDisplay(); // Added roll update
+        } else {
+          // Fallback if specific controllers not stored
+          this.gui.controllers.forEach(c => c.updateDisplay());
+        }
+      }
+
+
+      initEventListeners() {
+        window.addEventListener('resize', () => this.resize());
+
+        this.canvas.addEventListener('mousedown', (e) => {
+          const mousePos = this.getMousePos(e);
+          if (this.controls.showAxisHelper && this.isMouseOverAxisHelper(mousePos.x, mousePos.y)) {
+            this.isDraggingAxis = true;
+            this.dragStart = { x: mousePos.x, y: mousePos.y };
+            this.dragStartAngles = {
+              h: this.controls.viewAngleHorizontal,
+              v: this.controls.viewAngleEcliptic,
+              r: this.controls.viewAngleRoll
+            };
+            this.canvas.style.cursor = 'grabbing';
+            e.preventDefault();
+          }
+        });
+
+        this.canvas.addEventListener('mousemove', (e) => {
+          const mousePos = this.getMousePos(e);
+
+          if (this.isDraggingAxis) {
+            const dx = mousePos.x - this.dragStart.x;
+            const dy = mousePos.y - this.dragStart.y;
+
+            if (e.shiftKey) {
+              // Adjust Roll angle
+              this.controls.viewAngleRoll = this.dragStartAngles.r + dx * CONFIG.AXIS.DRAG_SENSITIVITY.R;
+            } else {
+              // Adjust Horizontal and Vertical angles (inverted drag)
+              this.controls.viewAngleHorizontal = this.dragStartAngles.h - dx * CONFIG.AXIS.DRAG_SENSITIVITY.H;
+              this.controls.viewAngleEcliptic = this.dragStartAngles.v - dy * CONFIG.AXIS.DRAG_SENSITIVITY.V;
+            }
+
+            this.camera.update(); // Update camera angles (includes clamping)
+            this.updateGuiDisplay(); // Update GUI sliders in real-time
+
+          } else {
+             // Update cursor hover state
+            if (this.controls.showAxisHelper && this.isMouseOverAxisHelper(mousePos.x, mousePos.y)) {
+               this.canvas.style.cursor = 'grab';
+            } else {
+               this.canvas.style.cursor = 'default';
+            }
+          }
+        });
+
+        window.addEventListener('mouseup', (e) => this.stopDragging(e));
+        this.canvas.addEventListener('mouseleave', (e) => {
+            if (!this.isDraggingAxis) {
+                this.canvas.style.cursor = 'default';
+            }
+        });
+      }
+
+      getMousePos(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        return {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        };
+      }
+
+      calcAxisHelperBounds() {
+        const padding = CONFIG.AXIS.PADDING;
+        const size = CONFIG.AXIS.BG_SIZE;
+        this.axisHelperBounds = {
+          x: padding,
+          y: this.canvas.height - padding - size,
+          width: size,
+          height: size
+        };
+      }
+
+      isMouseOverAxisHelper(x, y) {
+        return (
+          x >= this.axisHelperBounds.x &&
+          x <= this.axisHelperBounds.x + this.axisHelperBounds.width &&
+          y >= this.axisHelperBounds.y &&
+          y <= this.axisHelperBounds.y + this.axisHelperBounds.height
+        );
+      }
+
+      stopDragging(e) {
+        if (this.isDraggingAxis) {
+          this.isDraggingAxis = false;
+          const mousePos = this.getMousePos(e);
+          if (this.controls.showAxisHelper && this.isMouseOverAxisHelper(mousePos.x, mousePos.y)) {
+             this.canvas.style.cursor = 'grab';
+          } else {
+             this.canvas.style.cursor = 'default';
+          }
+        }
+      }
+
+      resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        this.calcAxisHelperBounds();
+      }
+
+      animate(timestamp = 0) {
+        const deltaTime = timestamp - this.lastFrameTime;
+        this.lastFrameTime = timestamp;
+        let elapsedDays = 0;
+
+        if (deltaTime > 0) {
+          this.fps = 1000 / deltaTime;
+          elapsedDays = (deltaTime / 1000) * this.controls.timeScale * this.controls.sunSpeedMultiplier;
+        }
+
+        this.system.update(elapsedDays);
+        // Ensure camera updates happen *after* control changes and *before* rendering
+        this.camera.update();
+
+        this.trailManager.update(
+          this.system.sunPosition,
+          this.system.planets,
+          this.controls.trailLength
+        );
+
+        this.renderer.clear();
+
+        // --- Main Scene Rendering ---
+        // No save/restore needed here if projection handles everything
+        // including roll and centering relative to canvas dims.
+
+        if (this.controls.showGalacticGrid) {
+          this.renderer.drawGalacticGrid(
+            this.camera, this.controls.focalLength, this.controls.viewCenterX,
+            this.controls.galacticGridBrightness, this.controls.zoomLevel
+          );
+        }
+
+        if (this.controls.showEclipticGrid) {
+          this.renderer.drawEclipticGrid(
+            this.camera, this.controls.focalLength, this.controls.viewCenterX,
+            this.controls.eclipticGridBrightness, this.controls.zoomLevel
+          );
+        }
+
+        // Draw Trails
+        this.renderer.drawTrail(
+          this.trailManager.sunTrail, 'rgba(255, 255, 100, 0.4)', this.controls.sunTrailWidth,
+          this.camera, this.controls.focalLength, this.controls.viewCenterX, this.controls.zoomLevel
+        );
+        this.trailManager.planetTrails.forEach((trail, i) => {
+          this.renderer.drawTrail(
+            trail, this.system.planets[i].color + 'aa', this.controls.planetTrailWidth,
+            this.camera, this.controls.focalLength, this.controls.viewCenterX, this.controls.zoomLevel
+          );
+        });
+
+        // Draw Sun
+        const sunProj = this.renderer.project(
+          this.system.sunPosition, this.camera, this.controls.focalLength, this.controls.viewCenterX
+        );
+        this.renderer.drawCelestialBody(sunProj, '#FFFF00', 8, this.controls.zoomLevel);
+
+        // Draw Planets
+        this.system.planets.forEach((planet, i) => {
+          const planetProj = this.renderer.project(
+            planet, this.camera, this.controls.focalLength, this.controls.viewCenterX
+          );
+          const baseSize = (i >= 4 && i <= 7) ? 2.5 : 1.2;
+          this.renderer.drawCelestialBody(planetProj, planet.color, baseSize, this.controls.zoomLevel);
+        });
+
+        // --- Overlay Rendering (Axis Helper, Stats) ---
+        // Render overlays last, without main scene transforms
+        if (this.controls.showAxisHelper) {
+          this.renderer.drawAxisHelper(this.camera, this.controls.zoomLevel);
+        }
+
+        this.renderer.updateStats(this.fps, this.controls.timeScale, this.system.earthDays);
+
+        requestAnimationFrame(t => this.animate(t));
+      }
+    }
+
+    new SolarApp();
+  </script>
+</body>
+</html>
+
+
