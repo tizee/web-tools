@@ -1,24 +1,28 @@
 {
   "name": "web-tools",
   "version": "1.0.0",
-  "description": "A collection of single-page web tools deployable as Cloudflare Workers",
+  "description": "A collection of single-page web tools deployable as Cloudflare Pages",
   "type": "module",
   "scripts": {
-    "dev:exif": "cd workers/exif-remover && wrangler dev",
-    "dev:flowdown": "cd workers/flowdown-config && wrangler dev",
-    "dev:hdr": "cd workers/hdr-tool && wrangler dev",
-    "dev:daoli": "cd workers/daoli-tool && wrangler dev",
-    "deploy:exif": "cd workers/exif-remover && wrangler deploy",
-    "deploy:flowdown": "cd workers/flowdown-config && wrangler deploy",
-    "deploy:hdr": "cd workers/hdr-tool && wrangler deploy",
-    "deploy:daoli": "cd workers/daoli-tool && wrangler deploy",
-    "deploy:all": "pnpm run deploy:exif && pnpm run deploy:flowdown && pnpm run deploy:hdr && pnpm run deploy:daoli"
+    "dev:exif": "cd pages/exif-remover && wrangler pages dev public",
+    "dev:flowdown": "cd pages/flowdown-config && wrangler pages dev public",
+    "dev:hdr": "cd pages/hdr-tool && wrangler pages dev public",
+    "dev:daoli": "cd pages/daoli-tool && wrangler pages dev public",
+    "dev:emoji": "cd pages/emoji-splitter && wrangler pages dev public",
+    "dev:solar": "cd pages/solar && wrangler pages dev public",
+    "deploy:exif": "cd pages/exif-remover && wrangler pages deploy public",
+    "deploy:flowdown": "cd pages/flowdown-config && wrangler pages deploy public",
+    "deploy:hdr": "cd pages/hdr-tool && wrangler pages deploy public",
+    "deploy:daoli": "cd pages/daoli-tool && wrangler pages deploy public",
+    "deploy:emoji": "cd pages/emoji-splitter && wrangler pages deploy public",
+    "deploy:solar": "cd pages/solar && wrangler pages deploy public",
+    "deploy:all": "pnpm run deploy:exif && pnpm run deploy:flowdown && pnpm run deploy:hdr && pnpm run deploy:daoli && pnpm run deploy:emoji && pnpm run deploy:solar"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
   },
   "keywords": [
-    "cloudflare-workers",
+    "cloudflare-pages",
     "web-tools",
     "single-page-app"
   ],

@@ -1,55 +1,34 @@
 # web-tools
 
-A collection of single-page web tools designed to be deployed as Cloudflare Workers.
+A collection of single-page web tools deployed as Cloudflare Pages.
 
 - Inspiration: from [simonw/tools](https://github.com/simonw/tools/)
 
 ## Tools
 
-### Do-one-thing
-
 - **exif-remover**: Remove EXIF meta info from images
   - Idea from [image-scrubber](https://github.com/everestpipkin/image-scrubber)
-  - Location: `workers/exif-remover/`
-  - Deployed at: `exif-remover.<your-subdomain>.workers.dev`
+  - Deployed at: `exif-remover.pages.dev`
 
 - **flowdown-config**: FlowDown Enterprise Configuration Generator
-  - Location: `workers/flowdown-config/`
-  - Deployed at: `flowdown-config.<your-subdomain>.workers.dev`
+  - Deployed at: `flowdown-config.pages.dev`
 
 - **hdr-tool**: HDR processing tool
-  - Location: `workers/hdr-tool/`
-  - Deployed at: `hdr-tool.<your-subdomain>.workers.dev`
+  - Deployed at: `hdr-tool.pages.dev`
 
-## Project Structure
+- **daoli-tool**: Daoli tool
+  - Deployed at: `daoli-tool.pages.dev`
 
-```
-web-tools/
-├── package.json              # Root package.json with shared dev dependencies
-├── wrangler.jsonc           # Workspace configuration for all workers
-├── workers/
-│   ├── exif-remover/        # EXIF removal tool
-│   │   ├── src/index.js     # Worker script
-│   │   ├── public/index.html # Tool HTML interface
-│   │   └── wrangler.jsonc   # Worker configuration
-│   ├── flowdown-config/     # FlowDown config generator
-│   │   ├── src/index.js
-│   │   ├── public/index.html
-│   │   └── wrangler.jsonc
-│   └── hdr-tool/            # HDR processing tool
-│       ├── src/index.js
-│       ├── public/index.html
-│       └── wrangler.jsonc
-└── README.md
-```
+- **emoji-splitter**: Emoji splitter tool
+  - Deployed at: `emoji-splitter.pages.dev`
+
+- **solar**: Solar tool
+  - Deployed at: `solar.pages.dev`
 
 ## Prerequisites
 
 1. Install [Node.js](https://nodejs.org/) (v16.17.0 or later)
-2. Install [Wrangler](https://developers.cloudflare.com/workers/wrangler/install-and-update/) v4.0.0 or later:
-   ```bash
-   npm install -g wrangler@^4.0.0
-   ```
+2. Install [pnpm](https://pnpm.io/) or npm
 3. Authenticate with Cloudflare:
    ```bash
    wrangler login
@@ -59,65 +38,56 @@ web-tools/
 
 ### Install dependencies
 ```bash
-npm install
+pnpm install
 ```
 
 ### Run local development server
 ```bash
-# For specific tools
-npm run dev:exif      # EXIF remover
-npm run dev:flowdown  # FlowDown config generator
-npm run dev:hdr       # HDR tool
-
-# Or manually for any tool
-npx wrangler dev --config workers/<tool-name>/wrangler.jsonc
+pnpm dev:exif      # EXIF remover
+pnpm dev:flowdown  # FlowDown config generator
+pnpm dev:hdr       # HDR tool
+pnpm dev:daoli     # Daoli tool
+pnpm dev:emoji     # Emoji splitter
+pnpm dev:solar     # Solar tool
 ```
 
 ## Deployment
 
 ### Deploy individual tools
 ```bash
-# Deploy EXIF remover
-npm run deploy:exif
-
-# Deploy FlowDown config generator
-npm run deploy:flowdown
-
-# Deploy HDR tool
-npm run deploy:hdr
+pnpm deploy:exif
+pnpm deploy:flowdown
+pnpm deploy:hdr
+pnpm deploy:daoli
+pnpm deploy:emoji
+pnpm deploy:solar
 ```
 
 ### Deploy all tools
 ```bash
-npm run deploy:all
+pnpm deploy:all
 ```
 
 ## Creating a New Tool
 
 To add a new tool:
 
-1. Create the directory structure:
+1. Create the directory:
    ```bash
-   mkdir -p workers/<tool-name>/{src,public}
+   mkdir pages/<tool-name>
    ```
 
-2. Add your HTML file to `workers/<tool-name>/public/index.html`
+2. Add your HTML file as `pages/<tool-name>/index.html`
 
-3. Create a worker script at `workers/<tool-name>/src/index.js`:
-   ```javascript
-   export default {
-     async fetch(request, env, ctx) {
-       const html = await import('../public/index.html');
-       return new Response(html.default, {
-         headers: { 'content-type': 'text/html;charset=UTF-8' },
-       });
-     },
-   };
+3. Create `pages/<tool-name>/wrangler.jsonc`:
+   ```json
+   {
+     "$schema": "node_modules/wrangler/config-schema.json",
+     "name": "<tool-name>",
+     "pages_build_output_dir": "."
+   }
    ```
 
-4. Create a `workers/<tool-name>/wrangler.jsonc` configuration file
+4. Add npm scripts to the root `package.json`
 
-5. Add npm scripts to the root `package.json`
-
-6. Update this README with the new tool information
-
+5. Update this README with the new tool information

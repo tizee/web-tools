@@ -1,6 +1,5 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "workspaces": [
-    "pages/*"
-  ]
+  "name": "daoli-tool",
+  "pages_build_output_dir": "public"
 }
