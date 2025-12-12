@@ -3,297 +3,425 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ExifCleaner</title>
+    <title>EXIF Cleaner — Strip Metadata</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@400;600;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
       :root {
-        /* Light theme (default) */
-        --primary-color: #6366f1;
-        --primary-light: #818cf8;
-        --primary-dark: #4f46e5;
-        --accent-color: #f472b6;
-        --background: #f9fafb;
-        --card-bg: #ffffff;
-        --text-primary: #1f2937;
-        --text-secondary: #6b7280;
-        --success: #10b981;
-        --error: #ef4444;
-        --border-color: #d1d5db;
-        --border-radius: 12px;
-        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        --shadow:
-          0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        --shadow-lg:
-          0 10px 15px -3px rgba(0, 0, 0, 0.1),
-          0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        --transition: all 0.2s ease;
-      }
+        --ink: #0a0a0b;
+        --paper: #f5f2eb;
+        --paper-dim: #e8e4db;
+        --vermillion: #e63b2e;
+        --vermillion-glow: rgba(230, 59, 46, 0.3);
+        --charcoal: #1a1a1c;
+        --smoke: #2d2d30;
+        --ash: #6b6b70;
+        --silver: #9a9a9f;
+        --success: #2e7d32;
+        --success-dim: rgba(46, 125, 50, 0.15);
 
-      /* Follow system preference by default */
-      @media (prefers-color-scheme: dark) {
-        html {
-          --background: #0f172a;
-          --card-bg: #1e293b;
-          --text-primary: #f3f4f6;
-          --text-secondary: #9ca3af;
-          --border-color: #374151;
-          --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-          --shadow:
-            0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
-          --shadow-lg:
-            0 10px 15px -3px rgba(0, 0, 0, 0.3),
-            0 4px 6px -2px rgba(0, 0, 0, 0.2);
-        }
-        html body {
-          background-image: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        }
+        --font-display: 'Darker Grotesque', sans-serif;
+        --font-mono: 'DM Mono', monospace;
 
-        html .upload-area {
-          background-color: rgba(30, 41, 59, 0.8);
-        }
-        html .upload-area:hover {
-          background-color: rgba(30, 41, 59, 0.5);
-        }
-
-        .exif-info {
-          background-color: rgba(30, 41, 59, 0.5);
-        }
+        --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+        --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
       }
 
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-          Arial, sans-serif;
+      }
+
+      html {
+        font-size: 16px;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
 
       body {
-        background: var(--background);
-        color: var(--text-primary);
+        font-family: var(--font-display);
+        background: var(--ink);
+        color: var(--paper);
         min-height: 100vh;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        padding: 20px;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      /* Film grain overlay */
+      body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        opacity: 0.035;
+        z-index: 1000;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      }
+
+      /* Halftone pattern background */
+      .bg-pattern {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        opacity: 0.03;
+        background-image: radial-gradient(circle, var(--paper) 1px, transparent 1px);
+        background-size: 24px 24px;
       }
 
       .container {
         width: 100%;
-        max-width: 375px;
+        max-width: 440px;
         margin: 0 auto;
+        padding: 32px 20px;
         display: flex;
         flex-direction: column;
-        gap: 24px;
+        gap: 32px;
+        position: relative;
+        z-index: 1;
       }
 
+      /* Header */
       .header {
-        text-align: center;
-        margin-bottom: 10px;
+        text-align: left;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--smoke);
       }
 
       .logo {
-        font-size: 24px;
+        font-family: var(--font-display);
+        font-size: 2.8rem;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        line-height: 1;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      .logo-main {
+        color: var(--paper);
+      }
+
+      .logo-accent {
+        color: var(--vermillion);
+        font-size: 0.5em;
         font-weight: 800;
-        background: linear-gradient(
-          135deg,
-          var(--primary-color),
-          var(--accent-color)
-        );
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        transform: translateY(-4px);
+        display: inline-block;
       }
 
-      .subtitle {
-        font-size: 14px;
-        color: var(--text-secondary);
-        font-weight: 400;
+      .tagline {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--silver);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
       }
 
+      /* Main upload card */
       .card {
-        background: var(--card-bg);
-        border-radius: var(--border-radius);
-        box-shadow: var(--shadow);
-        padding: 20px;
-        transition: var(--transition);
+        background: var(--charcoal);
+        border: 1px solid var(--smoke);
+        position: relative;
       }
 
-      .card:hover {
-        box-shadow: var(--shadow-lg);
+      /* Corner accents on card */
+      .card::before,
+      .card::after {
+        content: '';
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        border-color: var(--vermillion);
+        border-style: solid;
+        opacity: 0.6;
+        transition: opacity 0.3s ease;
       }
+
+      .card::before {
+        top: -1px;
+        left: -1px;
+        border-width: 2px 0 0 2px;
+      }
+
+      .card::after {
+        bottom: -1px;
+        right: -1px;
+        border-width: 0 2px 2px 0;
+      }
+
+      .card:hover::before,
+      .card:hover::after {
+        opacity: 1;
+      }
+
+      /* Upload area - styled like a developing tray */
       .upload-area {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        min-height: 180px;
-        border: 2px dashed var(--border-color);
-        border-radius: var(--border-radius);
+        min-height: 240px;
+        padding: 40px 32px;
         cursor: pointer;
-        transition: var(--transition);
-        background-color: rgba(255, 255, 255, 0.5);
+        transition: all 0.4s var(--ease-out-expo);
         position: relative;
         overflow: hidden;
       }
 
-      .upload-area:hover {
-        border-color: var(--primary-light);
-        background-color: rgba(255, 255, 255, 0.8);
+      /* Animated border effect */
+      .upload-area::before {
+        content: '';
+        position: absolute;
+        inset: 16px;
+        border: 1px dashed var(--ash);
+        transition: all 0.4s var(--ease-out-expo);
+      }
+
+      .upload-area:hover::before,
+      .upload-area.dragging::before {
+        border-color: var(--vermillion);
+        border-style: solid;
+        inset: 12px;
       }
 
       .upload-area.dragging {
-        border-color: var(--primary-color);
-        background-color: rgba(255, 255, 255, 0.9);
+        background: rgba(230, 59, 46, 0.05);
+      }
+
+      .upload-icon {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 24px;
+        position: relative;
+      }
+
+      .upload-icon svg {
+        width: 100%;
+        height: 100%;
+        stroke: var(--silver);
+        stroke-width: 1.5;
+        fill: none;
+        transition: all 0.3s var(--ease-out-expo);
+      }
+
+      .upload-area:hover .upload-icon svg,
+      .upload-area.dragging .upload-icon svg {
+        stroke: var(--vermillion);
+        transform: translateY(-4px);
       }
 
       .upload-text {
-        font-size: 16px;
-        color: var(--text-primary);
-        text-align: center;
+        font-family: var(--font-display);
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--paper);
         margin-bottom: 8px;
-        font-weight: 500;
+        text-align: center;
+        letter-spacing: -0.01em;
       }
 
       .upload-subtext {
-        font-size: 12px;
-        color: var(--text-secondary);
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--ash);
         text-align: center;
+        letter-spacing: 0.02em;
+        max-width: 280px;
+        line-height: 1.6;
       }
 
       #fileInput {
         display: none;
       }
 
+      /* Preview container */
       .preview-container {
         display: none;
         flex-direction: column;
-        align-items: center;
-        gap: 16px;
+        gap: 20px;
+        padding: 24px;
+      }
+
+      .image-wrapper {
+        position: relative;
+        background: var(--ink);
+        padding: 12px;
+        border: 1px solid var(--smoke);
       }
 
       .image-preview {
         width: 100%;
-        max-height: 300px;
+        max-height: 320px;
         object-fit: contain;
-        border-radius: var(--border-radius);
-        box-shadow: var(--shadow-sm);
+        display: block;
       }
 
-      .exif-info {
-        width: 100%;
-        max-height: 150px;
+      /* Film sprocket holes decoration */
+      .image-wrapper::before,
+      .image-wrapper::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 8px;
+        height: 80%;
+        background-image: repeating-linear-gradient(
+          180deg,
+          var(--smoke) 0px,
+          var(--smoke) 6px,
+          transparent 6px,
+          transparent 14px
+        );
+      }
+
+      .image-wrapper::before {
+        left: -16px;
+      }
+
+      .image-wrapper::after {
+        right: -16px;
+      }
+
+      /* EXIF info panel */
+      .exif-panel {
+        background: var(--ink);
+        border: 1px solid var(--smoke);
+        padding: 16px;
+        max-height: 160px;
         overflow-y: auto;
-        font-size: 12px;
-        color: var(--text-secondary);
-        border-radius: 8px;
-        padding: 12px;
       }
 
-      .button-container {
+      .exif-panel::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .exif-panel::-webkit-scrollbar-track {
+        background: var(--ink);
+      }
+
+      .exif-panel::-webkit-scrollbar-thumb {
+        background: var(--smoke);
+      }
+
+      .exif-header {
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        color: var(--vermillion);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 12px;
         display: flex;
-        gap: 10px;
-        width: 100%;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .exif-header::before {
+        content: '\26A0';
+        font-size: 0.8rem;
+      }
+
+      .exif-list {
+        list-style: none;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--silver);
+        line-height: 1.8;
+      }
+
+      .exif-list li::before {
+        content: '\203A';
+        margin-right: 8px;
+        color: var(--ash);
+      }
+
+      .exif-clean {
+        color: var(--success);
+      }
+
+      .exif-clean .exif-header {
+        color: var(--success);
+      }
+
+      .exif-clean .exif-header::before {
+        content: '\2713';
+      }
+
+      /* Buttons */
+      .button-row {
+        display: flex;
+        gap: 12px;
       }
 
       .btn {
         flex: 1;
-        padding: 12px 20px;
+        padding: 16px 24px;
         border: none;
-        border-radius: var(--border-radius);
-        font-weight: 600;
-        font-size: 14px;
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
         cursor: pointer;
-        transition: var(--transition);
-        text-align: center;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
+        transition: all 0.3s var(--ease-out-expo);
+        position: relative;
+        overflow: hidden;
       }
 
       .btn-primary {
-        background: linear-gradient(
-          135deg,
-          var(--primary-color),
-          var(--primary-dark)
-        );
-        color: white;
+        background: var(--vermillion);
+        color: var(--paper);
       }
 
       .btn-primary:hover {
+        background: #d12f23;
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(79, 70, 229, 0.4);
+        box-shadow: 0 8px 24px var(--vermillion-glow);
+      }
+
+      .btn-primary:active {
+        transform: translateY(0);
       }
 
       .btn-secondary {
-        background: white;
-        color: var(--primary-color);
-        border: 1px solid #e5e7eb;
+        background: transparent;
+        color: var(--silver);
+        border: 1px solid var(--smoke);
       }
 
       .btn-secondary:hover {
-        background-color: #f9fafb;
-        border-color: var(--primary-light);
+        border-color: var(--silver);
+        color: var(--paper);
       }
 
+      /* Status messages */
       .status {
         display: none;
-        padding: 12px;
-        border-radius: var(--border-radius);
-        font-size: 14px;
-        font-weight: 500;
+        padding: 16px 20px;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
         text-align: center;
-        animation: fadeIn 0.3s ease;
+        letter-spacing: 0.02em;
+        border: 1px solid;
+        animation: slideUp 0.4s var(--ease-out-back);
       }
 
-      .status-success {
-        background-color: rgba(16, 185, 129, 0.1);
-        color: var(--success);
-        border: 1px solid rgba(16, 185, 129, 0.2);
-      }
-
-      .status-error {
-        background-color: rgba(239, 68, 68, 0.1);
-        color: var(--error);
-        border: 1px solid rgba(239, 68, 68, 0.2);
-      }
-
-      .status-info {
-        background-color: rgba(99, 102, 241, 0.1);
-        color: var(--primary-color);
-        border: 1px solid rgba(99, 102, 241, 0.2);
-      }
-
-      .loading-indicator {
-        display: none;
-        padding: 12px;
-        border-radius: var(--border-radius);
-        font-size: 14px;
-        font-weight: 500;
-        text-align: center;
-        background-color: rgba(99, 102, 241, 0.1);
-        color: var(--primary-color);
-        animation: pulse 1.5s infinite ease-in-out;
-      }
-
-      @keyframes pulse {
-        0% {
-          opacity: 0.6;
-        }
-        50% {
-          opacity: 1;
-        }
-        100% {
-          opacity: 0.6;
-        }
-      }
-
-      @keyframes fadeIn {
+      @keyframes slideUp {
         from {
           opacity: 0;
-          transform: translateY(-10px);
+          transform: translateY(12px);
         }
         to {
           opacity: 1;
@@ -301,419 +429,385 @@
         }
       }
 
-      .footer {
-        margin-top: 20px;
-        text-align: center;
-        font-size: 12px;
-        color: var(--text-secondary);
+      .status-success {
+        background: var(--success-dim);
+        color: var(--success);
+        border-color: var(--success);
       }
 
-      @media (prefers-color-scheme: dark) {
+      .status-error {
+        background: rgba(230, 59, 46, 0.1);
+        color: var(--vermillion);
+        border-color: var(--vermillion);
+      }
+
+      .status-info {
+        background: rgba(154, 154, 159, 0.1);
+        color: var(--silver);
+        border-color: var(--smoke);
+      }
+
+      /* Loading */
+      .loading-indicator {
+        display: none;
+        padding: 20px;
+        text-align: center;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--silver);
+        letter-spacing: 0.02em;
+      }
+
+      .loading-indicator::before {
+        content: '';
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--smoke);
+        border-top-color: var(--vermillion);
+        border-radius: 50%;
+        margin-right: 12px;
+        vertical-align: middle;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      /* Footer */
+      .footer {
+        padding: 24px 20px;
+        text-align: center;
+        border-top: 1px solid var(--smoke);
+        margin-top: auto;
+      }
+
+      .footer-text {
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        color: var(--ash);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .footer-text span {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .footer-dot {
+        width: 4px;
+        height: 4px;
+        background: var(--ash);
+        border-radius: 50%;
+      }
+
+      /* Privacy badge */
+      .privacy-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        background: var(--charcoal);
+        border: 1px solid var(--smoke);
+        font-family: var(--font-mono);
+        font-size: 0.6rem;
+        color: var(--silver);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-top: 24px;
+      }
+
+      .privacy-badge svg {
+        width: 12px;
+        height: 12px;
+        stroke: var(--success);
+      }
+
+      /* Documentation section - styled to match the main card theme */
+      .docs {
+        margin-top: 4px;
+        padding: 20px 18px;
+        background: var(--charcoal);
+        border: 1px solid var(--smoke);
+        position: relative;
+      }
+
+      /* Corner accents (smaller than the main card) */
+      .docs::before,
+      .docs::after {
+        content: '';
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-color: var(--vermillion);
+        border-style: solid;
+        opacity: 0.5;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+      }
+
+      .docs::before {
+        top: -1px;
+        left: -1px;
+        border-width: 2px 0 0 2px;
+      }
+
+      .docs::after {
+        bottom: -1px;
+        right: -1px;
+        border-width: 0 2px 2px 0;
+      }
+
+      .docs:hover::before,
+      .docs:hover::after {
+        opacity: 0.9;
+      }
+
+      /* Dashed inset for visual consistency with upload area */
+      .docs .docs-inset {
+        border: 1px dashed var(--ash);
+        padding: 14px 14px;
+        background: var(--ink);
+      }
+
+      .docs h2 {
+        margin: 0 0 10px 0;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--paper);
+      }
+
+      .docs p {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: var(--silver);
+        line-height: 1.8;
+        margin: 8px 0 0 0;
+      }
+
+      .docs h3 {
+        margin: 14px 0 6px 0;
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        color: var(--vermillion);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .docs h3::before {
+        content: '\203A';
+        color: var(--ash);
+        font-size: 0.8rem;
+      }
+
+      .docs ul {
+        list-style: none;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--silver);
+        line-height: 1.9;
+        margin-top: 4px;
+      }
+
+      .docs li::before {
+        content: '\203A';
+        margin-right: 8px;
+        color: var(--ash);
+      }
+
+      .docs strong {
+        color: var(--paper);
+        font-weight: 600;
+      }
+
+      .docs code {
+        font-family: var(--font-mono);
+        font-size: 0.95em;
+        color: var(--paper);
+      }
+
+      /* Responsive */
+      @media (max-width: 480px) {
+        .container {
+          padding: 24px 16px;
+        }
+
+        .logo {
+          font-size: 2.2rem;
+        }
+
+        .upload-area {
+          min-height: 200px;
+          padding: 32px 24px;
+        }
+
+        .image-wrapper::before,
+        .image-wrapper::after {
+          display: none;
+        }
+      }
+
+      /* Light mode adjustments */
+      @media (prefers-color-scheme: light) {
         :root {
-          --background: #0f172a;
-          --card-bg: #1e293b;
-          --text-primary: #f3f4f6;
-          --text-secondary: #9ca3af;
-          --primary-color: #818cf8;
-          --primary-light: #a5b4fc;
-          --primary-dark: #6366f1;
+          --ink: #f5f2eb;
+          --paper: #0a0a0b;
+          --paper-dim: #1a1a1c;
+          --charcoal: #ffffff;
+          --smoke: #e8e4db;
+          --ash: #9a9a9f;
+          --silver: #6b6b70;
+        }
+
+        body::before {
+          opacity: 0.02;
+        }
+
+        .bg-pattern {
+          opacity: 0.02;
+        }
+
+        .card {
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
         }
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <div class="header">
-        <h1 class="logo">ExifCleaner</h1>
-        <p class="subtitle">Remove metadata from your photos</p>
-      </div>
+    <div class="bg-pattern"></div>
 
-      <div class="card">
+    <div class="container">
+      <header class="header">
+        <h1 class="logo">
+          <span class="logo-main">EXIF</span>
+          <span class="logo-accent">Cleaner</span>
+        </h1>
+        <p class="tagline">Strip metadata. Protect privacy.</p>
+      </header>
+
+      <main class="card">
         <div id="uploadContainer" class="upload-area">
-          <p class="upload-text">Click or drop image here</p>
+          <div class="upload-icon">
+            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+              <rect x="8" y="12" width="48" height="40" rx="2"/>
+              <circle cx="24" cy="28" r="6"/>
+              <path d="M8 44 L24 32 L36 40 L48 28 L56 36"/>
+              <path d="M32 4 L32 20 M24 12 L32 4 L40 12"/>
+            </svg>
+          </div>
+          <p class="upload-text">Drop image or click to upload</p>
           <p class="upload-subtext">
-            Your photos will be processed locally, nothing gets uploaded
+            All processing happens locally in your browser.
+            Nothing is uploaded to any server.
           </p>
           <input type="file" id="fileInput" accept="image/*" />
         </div>
 
         <div id="previewContainer" class="preview-container">
-          <img id="imagePreview" class="image-preview" src="" alt="Preview" />
-          <div id="exifInfo" class="exif-info"></div>
-          <div class="button-container">
-            <button id="resetBtn" class="btn btn-secondary">Back</button>
-            <button id="downloadBtn" class="btn btn-primary">Download</button>
+          <div class="image-wrapper">
+            <img id="imagePreview" class="image-preview" src="" alt="Preview" />
+          </div>
+
+          <div id="exifInfo" class="exif-panel"></div>
+
+          <div class="button-row">
+            <button id="resetBtn" class="btn btn-secondary">&larr; Back</button>
+            <button id="downloadBtn" class="btn btn-primary">Download Clean</button>
           </div>
         </div>
-      </div>
+      </main>
 
       <div id="loadingIndicator" class="loading-indicator">
-        Processing your image...
+        Processing image...
       </div>
 
       <div id="statusMessage" class="status"></div>
+
+      <div class="privacy-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <polyline points="9 12 11 14 15 10"/>
+        </svg>
+        100% Client-side Processing
+      </div>
+
+      <!-- Documentation for how different formats are handled.
+           This is user-facing guidance explaining when processing is lossless. -->
+      <section class="docs" aria-label="Processing documentation">
+        <div class="docs-inset">
+          <h2>格式说明 / How We Clean Metadata</h2>
+          <p>
+            本工具会先读取图片的 EXIF/元数据并展示，然后生成一份“清理后的文件”供下载。
+            不同格式的清理方式不同，是否会重新渲染（重编码）也不同：
+          </p>
+
+          <h3>JPEG / JPG（不会重新渲染）</h3>
+          <ul>
+            <li>我们直接在文件二进制层面移除元数据段（如 EXIF / XMP / IPTC）。</li>
+            <li>像素数据不变，不经过 canvas 重编码，因此图片质量、分辨率、色彩不发生变化。</li>
+            <li>结果仅丢失敏感元数据，文件体积通常会变小。</li>
+          </ul>
+
+          <p>在 JPEG 中会被移除的典型元数据包括（不限于）：</p>
+          <ul>
+            <li><strong>位置信息（GPS）</strong>：GPSLatitude / GPSLongitude / GPSAltitude / GPSDateStamp 等，可暴露拍摄地点与时间。</li>
+            <li><strong>拍摄设备信息</strong>：Make / Model（相机/手机品牌型号）、SerialNumber / BodySerialNumber（序列号）。</li>
+            <li><strong>镜头与拍摄参数</strong>：LensMake / LensModel / FocalLength / ExposureTime / FNumber / ISO 等。</li>
+            <li><strong>时间信息</strong>：DateTimeOriginal / DateTimeDigitized / DateTime，可暴露拍摄时间线。</li>
+            <li><strong>作者与版权</strong>：Artist / Copyright / OwnerName。</li>
+            <li><strong>软件痕迹</strong>：Software / ProcessingSoftware / Adobe XMP 等编辑软件与工作流信息。</li>
+            <li><strong>缩略图与预览</strong>：EXIF 内嵌缩略图（Thumbnail）及相关字段。</li>
+          </ul>
+
+          <h3>HEIC / HEIF（会重新渲染一次）</h3>
+          <ul>
+            <li>浏览器无法对 HEIC 做无损元数据移除，我们会先将其转换为 JPEG。</li>
+            <li>转换过程等同于一次重编码，因此可能产生轻微质量变化。</li>
+            <li>转换后我们仍会移除 JPEG 的元数据段。</li>
+          </ul>
+
+          <h3>PNG / WebP / 其他格式（会重新渲染）</h3>
+          <ul>
+            <li>这些格式在浏览器端缺乏可靠的无损元数据写入/删除能力。</li>
+            <li>因此会通过 canvas 重新导出为 JPEG 来确保干净输出。</li>
+            <li>这会导致一次重编码，可能改变质量/体积/格式（例如 PNG 会变为 JPEG）。</li>
+          </ul>
+
+          <p>
+            如果你希望完全无损、只移除元数据，请优先使用 JPEG/JPG 格式图片。
+          </p>
+        </div>
+      </section>
     </div>
 
-    <div class="footer">
-      <p>
-        Privacy-focused • No data sent to servers • All processing done locally
+    <footer class="footer">
+      <p class="footer-text">
+        <span>No tracking</span>
+        <span class="footer-dot"></span>
+        <span>No uploads</span>
+        <span class="footer-dot"></span>
+        <span>No logs</span>
       </p>
-    </div>
-  </body>
-  <script>
-    // --------------- EXIF.js (Simplified) ---------------
-    // This is a simplified version of the EXIF.js library
-    const EXIF = (function () {
-      const ExifTags = {
-        0x9000: "ExifVersion",
-        0xa001: "ColorSpace",
-        0xa002: "PixelXDimension",
-        0xa003: "PixelYDimension",
-        0x9003: "DateTimeOriginal",
-        0x9004: "DateTimeDigitized",
-        0x829a: "ExposureTime",
-        0x829d: "FNumber",
-        0x8827: "ISOSpeedRatings",
-        0x9201: "ShutterSpeedValue",
-        0x9202: "ApertureValue",
-        0x9204: "ExposureBias",
-        0x9205: "MaxApertureValue",
-        0x9206: "SubjectDistance",
-        0x9207: "MeteringMode",
-        0x9208: "LightSource",
-        0x9209: "Flash",
-        0x920a: "FocalLength",
-        0xa405: "FocalLengthIn35mmFilm",
-        0xa406: "SceneCaptureType",
-        0xa408: "Contrast",
-        0xa409: "Saturation",
-        0xa40a: "Sharpness",
-      };
+    </footer>
 
-      const TiffTags = {
-        0x0100: "ImageWidth",
-        0x0101: "ImageHeight",
-        0x0102: "BitsPerSample",
-        0x0103: "Compression",
-        0x0106: "PhotometricInterpretation",
-        0x0112: "Orientation",
-        0x0115: "SamplesPerPixel",
-        0x011a: "XResolution",
-        0x011b: "YResolution",
-        0x0128: "ResolutionUnit",
-        0x0132: "DateTime",
-        0x010e: "ImageDescription",
-        0x010f: "Make",
-        0x0110: "Model",
-        0x0131: "Software",
-        0x013b: "Artist",
-        0x8298: "Copyright",
-      };
+    <!-- Load the official exif-js library from CDN.
+         This script defines a global `EXIF` object that we use below to read
+         metadata from JPEG images before re-encoding them. -->
+    <script src="https://unpkg.com/exif-js@2.3.0/exif.js"></script>
 
-      const GPSTags = {
-        0x0001: "GPSLatitudeRef",
-        0x0002: "GPSLatitude",
-        0x0003: "GPSLongitudeRef",
-        0x0004: "GPSLongitude",
-        0x0005: "GPSAltitudeRef",
-        0x0006: "GPSAltitude",
-        0x001d: "GPSDateStamp",
-      };
-
-      function getStringFromDB(buffer, start, length) {
-        let outstr = "";
-        for (let n = start; n < start + length; n++) {
-          outstr += String.fromCharCode(buffer.getUint8(n));
-        }
-        return outstr;
-      }
-
-      function readTags(file, tiffStart, dirStart, strings, bigEnd) {
-        const entries = file.getUint16(dirStart, !bigEnd);
-        const tags = {};
-
-        for (let i = 0; i < entries; i++) {
-          const entryOffset = dirStart + i * 12 + 2;
-          const tag = strings[file.getUint16(entryOffset, !bigEnd)];
-
-          if (tag) {
-            tags[tag] = readTagValue(file, entryOffset, tiffStart, bigEnd);
-          }
-        }
-        return tags;
-      }
-
-      function readTagValue(file, entryOffset, tiffStart, bigEnd) {
-        const type = file.getUint16(entryOffset + 2, !bigEnd);
-        const numValues = file.getUint32(entryOffset + 4, !bigEnd);
-        const valueOffset =
-          file.getUint32(entryOffset + 8, !bigEnd) + tiffStart;
-
-        switch (type) {
-          case 1: // byte, 8-bit unsigned int
-          case 7: // undefined, 8-bit byte, value depending on field
-            if (numValues == 1) {
-              return file.getUint8(entryOffset + 8);
-            } else {
-              const offset = numValues > 4 ? valueOffset : entryOffset + 8;
-              const vals = [];
-              for (let n = 0; n < numValues; n++) {
-                vals[n] = file.getUint8(offset + n);
-              }
-              return vals;
-            }
-          case 2: // ascii, 8-bit byte
-            const offset = numValues > 4 ? valueOffset : entryOffset + 8;
-            return getStringFromDB(file, offset, numValues - 1);
-          case 3: // short, 16 bit int
-            if (numValues == 1) {
-              return file.getUint16(entryOffset + 8, !bigEnd);
-            } else {
-              const vals = [];
-              for (let n = 0; n < numValues; n++) {
-                vals[n] = file.getUint16(valueOffset + 2 * n, !bigEnd);
-              }
-              return vals;
-            }
-          case 4: // long, 32 bit int
-            if (numValues == 1) {
-              return file.getUint32(entryOffset + 8, !bigEnd);
-            } else {
-              const vals = [];
-              for (let n = 0; n < numValues; n++) {
-                vals[n] = file.getUint32(valueOffset + 4 * n, !bigEnd);
-              }
-              return vals;
-            }
-          default:
-            return "Unknown type: " + type;
-        }
-      }
-
-      function findEXIFinJPEG(file) {
-        if (file.getUint8(0) != 0xff || file.getUint8(1) != 0xd8) {
-          return false; // not a valid JPEG
-        }
-
-        let offset = 2;
-        const length = file.byteLength;
-
-        while (offset < length) {
-          if (file.getUint8(offset) != 0xff) {
-            return false; // not a valid marker
-          }
-
-          const marker = file.getUint8(offset + 1);
-
-          // 0xE1 = Application Marker (Exif)
-          if (marker == 0xe1) {
-            return readEXIFData(
-              file,
-              offset + 4,
-              file.getUint16(offset + 2) - 2,
-            );
-          } else {
-            offset += 2 + file.getUint16(offset + 2);
-          }
-        }
-        return false;
-      }
-
-      function readEXIFData(file, start) {
-        if (getStringFromDB(file, start, 4) != "Exif") {
-          return false;
-        }
-
-        let bigEnd;
-        const tiffOffset = start + 6;
-
-        // Test for TIFF validity and endianness
-        if (file.getUint16(tiffOffset) == 0x4949) {
-          bigEnd = false;
-        } else if (file.getUint16(tiffOffset) == 0x4d4d) {
-          bigEnd = true;
-        } else {
-          return false;
-        }
-
-        if (file.getUint16(tiffOffset + 2, !bigEnd) != 0x002a) {
-          return false;
-        }
-
-        const firstIFDOffset = file.getUint32(tiffOffset + 4, !bigEnd);
-        if (firstIFDOffset < 0x00000008) {
-          return false;
-        }
-
-        const tags = readTags(
-          file,
-          tiffOffset,
-          tiffOffset + firstIFDOffset,
-          TiffTags,
-          bigEnd,
-        );
-
-        if (tags.ExifIFDPointer) {
-          const exifData = readTags(
-            file,
-            tiffOffset,
-            tiffOffset + tags.ExifIFDPointer,
-            ExifTags,
-            bigEnd,
-          );
-          for (const tag in exifData) {
-            tags[tag] = exifData[tag];
-          }
-        }
-
-        if (tags.GPSInfoIFDPointer) {
-          const gpsData = readTags(
-            file,
-            tiffOffset,
-            tiffOffset + tags.GPSInfoIFDPointer,
-            GPSTags,
-            bigEnd,
-          );
-          for (const tag in gpsData) {
-            tags[tag] = gpsData[tag];
-          }
-        }
-
-        return tags;
-      }
-
-      function getData(img, callback) {
-        if (
-          (img instanceof Image || img instanceof HTMLImageElement) &&
-          !img.complete
-        ) {
-          return false;
-        }
-
-        if (!imageHasData(img)) {
-          getImageData(img, callback);
-        } else {
-          if (callback) {
-            callback.call(img);
-          }
-        }
-        return true;
-      }
-
-      function getImageData(img, callback) {
-        const handleBinaryFile = function (binFile) {
-          const data = findEXIFinJPEG(new DataView(binFile));
-          img.exifdata = data || {};
-          if (callback) {
-            callback.call(img);
-          }
-        };
-
-        if (img.src) {
-          // Handle data URI or Blob URL
-          if (/^data\:/i.test(img.src)) {
-            const arrayBuffer = base64ToArrayBuffer(img.src);
-            handleBinaryFile(arrayBuffer);
-          } else if (/^blob\:/i.test(img.src)) {
-            const fileReader = new FileReader();
-            fileReader.onload = function (e) {
-              handleBinaryFile(e.target.result);
-            };
-            objectURLToBlob(img.src, function (blob) {
-              fileReader.readAsArrayBuffer(blob);
-            });
-          } else {
-            const http = new XMLHttpRequest();
-            http.onload = function () {
-              if (this.status == 200 || this.status === 0) {
-                handleBinaryFile(http.response);
-              }
-            };
-            http.open("GET", img.src, true);
-            http.responseType = "arraybuffer";
-            http.send(null);
-          }
-        } else if (
-          self.FileReader &&
-          (img instanceof Blob || img instanceof File)
-        ) {
-          const fileReader = new FileReader();
-          fileReader.onload = function (e) {
-            handleBinaryFile(e.target.result);
-          };
-          fileReader.readAsArrayBuffer(img);
-        }
-      }
-
-      function imageHasData(img) {
-        return !!img.exifdata;
-      }
-
-      function base64ToArrayBuffer(base64) {
-        base64 = base64.replace(/^data\:([^\;]+)\;base64,/gim, "");
-        const binary = atob(base64);
-        const len = binary.length;
-        const buffer = new ArrayBuffer(len);
-        const view = new Uint8Array(buffer);
-        for (let i = 0; i < len; i++) {
-          view[i] = binary.charCodeAt(i);
-        }
-        return buffer;
-      }
-
-      function objectURLToBlob(url, callback) {
-        const http = new XMLHttpRequest();
-        http.open("GET", url, true);
-        http.responseType = "blob";
-        http.onload = function (e) {
-          if (this.status == 200 || this.status === 0) {
-            callback(this.response);
-          }
-        };
-        http.send();
-      }
-
-      return {
-        getData: getData,
-        getTag: function (img, tag) {
-          if (!imageHasData(img)) return;
-          return img.exifdata[tag];
-        },
-        getAllTags: function (img) {
-          if (!imageHasData(img)) return {};
-          let a,
-            data = img.exifdata,
-            tags = {};
-          for (a in data) {
-            if (data.hasOwnProperty(a)) {
-              tags[a] = data[a];
-            }
-          }
-          return tags;
-        },
-        pretty: function (img) {
-          if (!imageHasData(img)) return "";
-          let a,
-            data = img.exifdata,
-            strPretty = "";
-          for (a in data) {
-            if (data.hasOwnProperty(a)) {
-              if (typeof data[a] == "object") {
-                if (data[a] instanceof Number) {
-                  strPretty += a + " : " + data[a] + "\n";
-                } else {
-                  strPretty += a + " : [" + data[a].length + " values]\n";
-                }
-              } else {
-                strPretty += a + " : " + data[a] + "\n";
-              }
-            }
-          }
-          return strPretty;
-        },
-      };
-    })();
-
+    <script>
     // --------------- App Code ---------------
     const fileInput = document.getElementById("fileInput");
     const uploadContainer = document.getElementById("uploadContainer");
@@ -728,6 +822,9 @@
     let originalFileName = "";
     let cleanedImageBlob = null;
     let hasExifData = false;
+    let lastProcessWasLossless = false;
+    let lastProcessNote = "";
+    let lastRemovedCategories = [];
 
     // Setup event listeners
     uploadContainer.addEventListener("click", () => fileInput.click());
@@ -750,23 +847,19 @@
 
     uploadContainer.addEventListener("drop", handleDrop, false);
 
-    // Prevent default behaviors for drag events
     function preventDefaults(e) {
       e.preventDefault();
       e.stopPropagation();
     }
 
-    // Add highlight class on drag over
     function highlight() {
       uploadContainer.classList.add("dragging");
     }
 
-    // Remove highlight class on drag leave
     function unhighlight() {
       uploadContainer.classList.remove("dragging");
     }
 
-    // Handle file drop
     function handleDrop(e) {
       const files = e.dataTransfer.files;
       if (files.length) {
@@ -777,20 +870,14 @@
 
     // --------------- HEIC to JPEG Converter ---------------
     const HEICConverter = (function () {
-      // Check if browser supports OffscreenCanvas
       const supportsOffscreenCanvas = typeof OffscreenCanvas !== "undefined";
 
-      // Convert HEIC/HEIF to JPEG
       async function convertHEICToJPEG(heicBlob) {
         return new Promise(async (resolve, reject) => {
           try {
-            // Create URL for the HEIC blob
             const url = URL.createObjectURL(heicBlob);
-
-            // Create an image element to hold the image data
             const img = document.createElement("img");
 
-            // Set up error handling - Safari and older browsers might not support HEIC
             img.onerror = function () {
               URL.revokeObjectURL(url);
               reject(
@@ -800,11 +887,9 @@
               );
             };
 
-            // When image loads successfully
             img.onload = function () {
               URL.revokeObjectURL(url);
 
-              // Create canvas to draw the image
               const canvas = supportsOffscreenCanvas
                 ? new OffscreenCanvas(img.width, img.height)
                 : document.createElement("canvas");
@@ -812,11 +897,9 @@
               canvas.width = img.width;
               canvas.height = img.height;
 
-              // Draw image to canvas
               const ctx = canvas.getContext("2d");
               ctx.drawImage(img, 0, 0);
 
-              // Convert to JPEG blob
               if (supportsOffscreenCanvas) {
                 canvas
                   .convertToBlob({ type: "image/jpeg", quality: 0.92 })
@@ -827,8 +910,6 @@
               }
             };
 
-            // Try to load the image - this will work in Safari and iOS browsers
-            // which natively support HEIC
             img.src = url;
           } catch (error) {
             reject(error);
@@ -836,9 +917,7 @@
         });
       }
 
-      // Detect if a file is a HEIC/HEIF image
       function isHEICImage(file) {
-        console.debug(file);
         return (
           file.type === "image/heic" ||
           file.type === "image/heif" ||
@@ -853,93 +932,378 @@
       };
     })();
 
-    // Handle file selection from input
     function handleFileSelect(e) {
       const file = e.target.files[0];
       if (!file) return;
-      console.debug("file", file);
 
-      // Check if file is an image
       if (!file.type.match("image.*") && !HEICConverter.isHEICImage(file)) {
-        showStatus("Please select an image file.", "error");
+        showStatus("Please select an image file.", "error", { autoHideMs: null });
         return;
       }
 
       originalFileName = file.name;
       showLoading(true);
 
-      // Check if the file is a HEIC/HEIF file
       if (HEICConverter.isHEICImage(file)) {
-        showStatus("Converting HEIC image...", "info");
+        // Keep this status visible until conversion finishes.
+        showStatus("Converting HEIC image...", "info", { autoHideMs: null });
 
-        // Convert HEIC to JPEG
         HEICConverter.convertHEICToJPEG(file)
           .then((convertedBlob) => {
-            // Process the converted image
-            processImage(convertedBlob, originalFileName);
+            // HEIC conversion already re-encodes the image once.
+            processImage(convertedBlob, originalFileName, { fromHeic: true });
           })
           .catch((err) => {
             console.error("HEIC conversion error:", err);
             showStatus(
               "Error converting HEIC image. Your browser may not support HEIC format natively.",
               "error",
+              { autoHideMs: null },
             );
             showLoading(false);
           });
       } else {
-        // Process regular image formats
-        processImage(file, originalFileName);
+        processImage(file, originalFileName, { fromHeic: false });
       }
     }
 
-    function processImage(file, originalName) {
-      // Read the image for preview
-      const reader = new FileReader();
-      reader.onload = function (event) {
-        imagePreview.src = event.target.result;
+    // Read a Blob/File as DataURL.
+    function readAsDataURL(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+    }
 
-        // Extract EXIF data
+    // Read a Blob/File as ArrayBuffer.
+    function readAsArrayBuffer(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsArrayBuffer(blob);
+      });
+    }
+
+    // Losslessly strip metadata segments from a JPEG file.
+    // This removes APP1 (EXIF/XMP), APP13 (IPTC/Photoshop), and COM (comments)
+    // without touching the scan data, so pixels/quality stay identical.
+    function stripJpegMetadata(arrayBuffer) {
+      const bytes = new Uint8Array(arrayBuffer);
+      if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
+        return arrayBuffer; // Not a JPEG.
+      }
+
+      const chunks = [];
+      chunks.push(bytes.slice(0, 2)); // SOI
+
+      let offset = 2;
+      while (offset < bytes.length) {
+        if (bytes[offset] !== 0xff) {
+          // Unexpected data; copy the rest and stop.
+          chunks.push(bytes.slice(offset));
+          break;
+        }
+
+        const marker = bytes[offset + 1];
+
+        // Start of Scan: copy scan data to end, then stop parsing.
+        if (marker === 0xda) {
+          chunks.push(bytes.slice(offset));
+          break;
+        }
+
+        // Standalone markers (no length field).
+        if (
+          marker === 0x01 ||
+          (marker >= 0xd0 && marker <= 0xd7) ||
+          marker === 0xd8 ||
+          marker === 0xd9
+        ) {
+          chunks.push(bytes.slice(offset, offset + 2));
+          offset += 2;
+          continue;
+        }
+
+        if (offset + 4 > bytes.length) {
+          chunks.push(bytes.slice(offset));
+          break;
+        }
+
+        const length = (bytes[offset + 2] << 8) | bytes[offset + 3];
+        const segmentEnd = offset + 2 + length;
+
+        if (segmentEnd > bytes.length || length < 2) {
+          chunks.push(bytes.slice(offset));
+          break;
+        }
+
+        const shouldRemove =
+          marker === 0xe1 || // APP1: EXIF/XMP
+          marker === 0xed || // APP13: IPTC/Photoshop
+          marker === 0xfe;   // COM: comment
+
+        if (!shouldRemove) {
+          chunks.push(bytes.slice(offset, segmentEnd));
+        }
+
+        offset = segmentEnd;
+      }
+
+      const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+      const out = new Uint8Array(totalLength);
+      let pos = 0;
+      for (const c of chunks) {
+        out.set(c, pos);
+        pos += c.length;
+      }
+      return out.buffer;
+    }
+
+    // Helper function to safely escape text for display
+    function escapeText(text) {
+      if (text === null || text === undefined) return '';
+      return String(text);
+    }
+
+    // Identify high-level metadata categories that are considered sensitive
+    // and will be removed from the output file.
+    function getRemovedCategories(allTags) {
+      const categories = [];
+
+      // GPS / location
+      if (
+        allTags.GPSLatitude ||
+        allTags.GPSLongitude ||
+        allTags.GPSAltitude ||
+        allTags.GPSDateStamp ||
+        allTags.GPSLatitudeRef ||
+        allTags.GPSLongitudeRef
+      ) {
+        categories.push("GPS location data");
+      }
+
+      // Camera / device identity
+      if (allTags.Make || allTags.Model || allTags.SerialNumber || allTags.BodySerialNumber) {
+        categories.push("Camera/device identity");
+      }
+
+      // Lens & exposure / shooting parameters
+      const lensOrExposureKeys = [
+        "LensMake",
+        "LensModel",
+        "FocalLength",
+        "ExposureTime",
+        "FNumber",
+        "ISOSpeedRatings",
+        "ShutterSpeedValue",
+        "ApertureValue",
+        "ExposureBias",
+        "Flash",
+        "FocalLengthIn35mmFilm",
+      ];
+      if (lensOrExposureKeys.some((k) => allTags[k] !== undefined)) {
+        categories.push("Lens & shooting parameters");
+      }
+
+      // Timestamps
+      if (allTags.DateTime || allTags.DateTimeOriginal || allTags.DateTimeDigitized) {
+        categories.push("Capture timestamps");
+      }
+
+      // Author / copyright
+      if (allTags.Artist || allTags.Copyright || allTags.OwnerName) {
+        categories.push("Author/copyright");
+      }
+
+      // Software / workflow traces
+      if (allTags.Software || allTags.ProcessingSoftware) {
+        categories.push("Software/workflow traces");
+      }
+
+      // Embedded thumbnails / previews
+      if (allTags.ThumbnailImage || allTags.JPEGInterchangeFormat) {
+        categories.push("Embedded thumbnails");
+      }
+
+      return categories;
+    }
+
+    // Build EXIF info panel using safe DOM methods
+    function buildExifPanel(allTags, hasData) {
+      // Clear existing content
+      while (exifInfo.firstChild) {
+        exifInfo.removeChild(exifInfo.firstChild);
+      }
+
+      const header = document.createElement('div');
+      header.className = 'exif-header';
+
+      const list = document.createElement('ul');
+      list.className = 'exif-list';
+
+      if (hasData) {
+        header.textContent = 'Metadata detected — will be removed';
+        exifInfo.classList.remove('exif-clean');
+
+        const items = [];
+
+        // High-level sensitive categories that will be removed.
+        lastRemovedCategories = getRemovedCategories(allTags);
+        if (lastRemovedCategories.length) {
+          lastRemovedCategories.forEach((c) => items.push("Will remove: " + c));
+        }
+
+        // Show a couple of friendly examples without dumping raw tags.
+        if (allTags.Make || allTags.Model) {
+          const cameraInfo =
+            escapeText(allTags.Make || "") + " " + escapeText(allTags.Model || "");
+          items.push("Detected camera: " + cameraInfo.trim());
+        }
+        if (allTags.DateTime || allTags.DateTimeOriginal) {
+          items.push(
+            "Detected time: " +
+              escapeText(allTags.DateTimeOriginal || allTags.DateTime),
+          );
+        }
+
+        const tagCount = Object.keys(allTags).length;
+        items.push(tagCount + " total metadata fields");
+
+        items.forEach(function (itemText) {
+          const li = document.createElement('li');
+          li.textContent = itemText;
+          list.appendChild(li);
+        });
+      } else {
+        header.textContent = 'No metadata found';
+        exifInfo.classList.add('exif-clean');
+        lastRemovedCategories = [];
+
+        const li = document.createElement('li');
+        li.textContent = 'Image will be re-processed to ensure clean output';
+        list.appendChild(li);
+      }
+
+      exifInfo.appendChild(header);
+      exifInfo.appendChild(list);
+    }
+
+    async function processImage(file, originalName, options) {
+      const fromHeic = options && options.fromHeic;
+      lastProcessWasLossless = false;
+      lastProcessNote = "";
+
+      const isJpeg =
+        (file.type && file.type.toLowerCase() === "image/jpeg") ||
+        /\.jpe?g$/i.test(originalName);
+
+      try {
+        // Read DataURL for preview/EXIF and ArrayBuffer for lossless JPEG stripping.
+        const [dataUrl, arrayBuffer] = await Promise.all([
+          readAsDataURL(file),
+          readAsArrayBuffer(file),
+        ]);
+
+        imagePreview.src = dataUrl;
+
         const img = new Image();
         img.onload = function () {
-          // Process the image
+          // The global EXIF object is provided by the official exif-js CDN script.
+          // If it did not load (offline / blocked CDN), fall back to "no metadata"
+          // so the tool still works instead of crashing.
+          if (!window.EXIF || typeof window.EXIF.getData !== "function") {
+            hasExifData = false;
+            buildExifPanel({}, false);
+            if (isJpeg) {
+              const stripped = stripJpegMetadata(arrayBuffer);
+              cleanedImageBlob = new Blob([stripped], { type: "image/jpeg" });
+              lastProcessWasLossless = !fromHeic;
+              lastProcessNote = fromHeic
+                ? "HEIC was converted to JPEG first"
+                : "Lossless JPEG metadata strip";
+              finalizeClean();
+            } else {
+              cleanImage(img);
+            }
+            return;
+          }
+
           EXIF.getData(img, function () {
             const allTags = EXIF.getAllTags(this);
             hasExifData = Object.keys(allTags).length > 0;
 
-            // Display EXIF information
-            let exifText = "";
-            if (hasExifData) {
-              exifText +=
-                "<strong>Original image contains metadata:</strong><br>";
-              exifText += `
-                                <ul style="margin-left: 16px; margin-top: 6px;">
-                                    ${allTags.Make ? `<li>Camera: ${allTags.Make} ${allTags.Model || ""}</li>` : ""}
-                                    ${allTags.DateTime ? `<li>Date Taken: ${allTags.DateTime}</li>` : ""}
-                                    ${allTags.GPSLatitude ? "<li>GPS Location Data</li>" : ""}
-                                    ${allTags.Software ? `<li>Software: ${allTags.Software}</li>` : ""}
-                                    ${allTags.Artist ? `<li>Artist: ${allTags.Artist}</li>` : ""}
-                                    ${Object.keys(allTags).length > 0 ? `<li>+ ${Object.keys(allTags).length} metadata items</li>` : ""}
-                                </ul>
-                            `;
-              exifText += "<strong>All metadata will be removed.</strong>";
-            } else {
-              exifText =
-                "<strong>No metadata found in this image.</strong><br>The image will be processed anyway to ensure clean output.";
+            // Build EXIF panel using safe DOM methods
+            buildExifPanel(allTags, hasExifData);
+
+            // Show a persistent pre-clean status so users understand what will be removed.
+            if (hasExifData && lastRemovedCategories.length) {
+              showStatus(
+                "Metadata detected — removing: " +
+                  lastRemovedCategories.join(", ") +
+                  "...",
+                "info",
+                { autoHideMs: null },
+              );
+            } else if (!hasExifData) {
+              showStatus("No metadata detected — producing clean copy...", "info", {
+                autoHideMs: null,
+              });
             }
 
-            exifInfo.innerHTML = exifText;
-
-            // Clean the image (remove EXIF data)
-            cleanImage(img);
+            if (isJpeg) {
+              const stripped = stripJpegMetadata(arrayBuffer);
+              cleanedImageBlob = new Blob([stripped], { type: "image/jpeg" });
+              lastProcessWasLossless = !fromHeic;
+              lastProcessNote = fromHeic
+                ? "HEIC was converted to JPEG first"
+                : "Lossless JPEG metadata strip";
+              finalizeClean();
+            } else {
+              cleanImage(img);
+            }
           });
         };
-        img.src = event.target.result;
-      };
-
-      reader.readAsDataURL(file);
+        img.src = dataUrl;
+      } catch (error) {
+        console.error("Process image error:", error);
+        showStatus("Failed to read image.", "error", { autoHideMs: null });
+        showLoading(false);
+      }
     }
 
-    // Clean the image by removing EXIF data
+    function finalizeClean() {
+      uploadContainer.style.display = "none";
+      previewContainer.style.display = "flex";
+
+      if (lastProcessWasLossless) {
+        const details = lastRemovedCategories.length
+          ? " Removed: " + lastRemovedCategories.join(", ") + "."
+          : "";
+        showStatus("Metadata stripped (lossless JPEG)." + details, "success", { autoHideMs: null });
+      } else if (lastProcessNote) {
+        const details = lastRemovedCategories.length
+          ? " Removed: " + lastRemovedCategories.join(", ") + "."
+          : "";
+        showStatus(
+          "Metadata stripped — image was re-encoded." + details,
+          "info",
+          { autoHideMs: null },
+        );
+      } else if (hasExifData) {
+        const details = lastRemovedCategories.length
+          ? " Removed: " + lastRemovedCategories.join(", ") + "."
+          : "";
+        showStatus("Metadata stripped successfully." + details, "success", { autoHideMs: null });
+      } else {
+        showStatus("Image processed — ready for download", "info", { autoHideMs: null });
+      }
+
+      showLoading(false);
+    }
+
     function cleanImage(image) {
       const canvas = document.createElement("canvas");
       canvas.width = image.width;
@@ -948,50 +1312,31 @@
       const ctx = canvas.getContext("2d");
       ctx.drawImage(image, 0, 0);
 
-      // Convert the canvas to a clean Blob (JPEG without EXIF)
       canvas.toBlob(
         function (blob) {
           cleanedImageBlob = blob;
-
-          // Show the preview
-          uploadContainer.style.display = "none";
-          previewContainer.style.display = "flex";
-
-          if (hasExifData) {
-            showStatus(
-              "Metadata successfully removed! Your image is now clean.",
-              "success",
-            );
-          } else {
-            showStatus(
-              "Image processed! No metadata was found, but your image is clean.",
-              "info",
-            );
-          }
-
-          showLoading(false);
+          lastProcessWasLossless = false;
+          lastProcessNote = "Canvas re-encode";
+          finalizeClean();
         },
         "image/jpeg",
         0.92,
       );
     }
 
-    // Download the cleaned image
     function downloadCleanedImage() {
       if (!cleanedImageBlob) {
-        showStatus("No processed image available.", "error");
+        showStatus("No processed image available.", "error", { autoHideMs: null });
         return;
       }
 
-      // Create filename with _clean suffix
       const filenameParts = originalFileName.split(".");
       const extension = filenameParts.pop().toLowerCase();
       const basename = filenameParts.join(".");
 
-      // Always save as JPEG if it was originally HEIC/HEIF
       const newExtension =
         extension === "heic" || extension === "heif" ? "jpg" : extension;
-      const cleanFilename = `${basename}_clean.${newExtension}`;
+      const cleanFilename = basename + "_clean." + newExtension;
 
       const url = URL.createObjectURL(cleanedImageBlob);
       const a = document.createElement("a");
@@ -1001,43 +1346,58 @@
       document.body.appendChild(a);
       a.click();
 
-      setTimeout(() => {
+      setTimeout(function() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }, 100);
 
-      showStatus("Image downloaded successfully!", "success");
+      // Keep the download status visible until another status replaces it.
+      showStatus("Download started", "success", { autoHideMs: null });
     }
 
-    // Reset the application state to accept a new image
     function resetApp() {
       uploadContainer.style.display = "flex";
       previewContainer.style.display = "none";
       imagePreview.src = "";
-      exifInfo.textContent = "";
+      // Clear exif info safely
+      while (exifInfo.firstChild) {
+        exifInfo.removeChild(exifInfo.firstChild);
+      }
+      exifInfo.classList.remove('exif-clean');
       statusMessage.style.display = "none";
       fileInput.value = "";
       cleanedImageBlob = null;
       originalFileName = "";
       hasExifData = false;
+      lastProcessWasLossless = false;
+      lastProcessNote = "";
     }
 
-    // Show status message
-    function showStatus(message, type = "info") {
+    function showStatus(message, type, options) {
+      type = type || "info";
       statusMessage.textContent = message;
-      statusMessage.className = "status"; // Reset classes
-      statusMessage.classList.add(`status-${type}`);
+      statusMessage.className = "status";
+      statusMessage.classList.add("status-" + type);
       statusMessage.style.display = "block";
 
-      // Auto hide after 5 seconds
-      setTimeout(() => {
-        statusMessage.style.display = "none";
-      }, 5000);
+      // This tool processes one image at a time, so status messages are meant
+      // to be persistent. By default we do not auto-hide; callers can opt in
+      // to auto-hiding by passing a number of milliseconds.
+      const autoHideMs =
+        options && Object.prototype.hasOwnProperty.call(options, "autoHideMs")
+          ? options.autoHideMs
+          : null;
+
+      if (autoHideMs !== null && autoHideMs !== undefined) {
+        setTimeout(function () {
+          statusMessage.style.display = "none";
+        }, autoHideMs);
+      }
     }
 
-    // Show/hide loading indicator
     function showLoading(show) {
       loadingIndicator.style.display = show ? "block" : "none";
     }
-  </script>
+    </script>
+  </body>
 </html>
