@@ -7,6 +7,7 @@
     <!-- Mermaid & SVG-Pan-Zoom -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1108,6 +1109,51 @@ document.addEventListener('DOMContentLoaded', () => {
                     svg.style.height = '100%';
                     svg.setAttribute('width', '100%');
                     svg.setAttribute('height', '100%');
+
+                    // Mobile Touch Support via Hammer.js
+                    const eventsHandler = {
+                        haltEventListeners: ['touchstart', 'touchend', 'touchmove', 'touchleave', 'touchcancel'],
+                        init: function(options) {
+                            var instance = options.instance,
+                                initialScale = 1,
+                                pannedX = 0,
+                                pannedY = 0;
+
+                            // Init Hammer
+                            this.hammer = Hammer(options.svgElement, {
+                                inputClass: Hammer.SUPPORT_POINTER_EVENTS ? Hammer.PointerEventInput : Hammer.TouchInput
+                            });
+
+                            // Enable pinch
+                            this.hammer.get('pinch').set({enable: true});
+
+                            // Handle pan
+                            this.hammer.on('panstart panmove', function(ev){
+                                if (ev.type === 'panstart') {
+                                    pannedX = 0;
+                                    pannedY = 0;
+                                }
+                                instance.panBy({x: ev.deltaX - pannedX, y: ev.deltaY - pannedY});
+                                pannedX = ev.deltaX;
+                                pannedY = ev.deltaY;
+                            });
+
+                            // Handle pinch
+                            this.hammer.on('pinchstart pinchmove', function(ev){
+                                if (ev.type === 'pinchstart') {
+                                    initialScale = instance.getZoom();
+                                    instance.zoomAtPoint(initialScale * ev.scale, {x: ev.center.x, y: ev.center.y});
+                                }
+                                instance.zoomAtPoint(initialScale * ev.scale, {x: ev.center.x, y: ev.center.y});
+                            });
+
+                            // Prevent scrolling while interacting with the diagram
+                            options.svgElement.addEventListener('touchmove', function(e){ e.preventDefault(); });
+                        },
+                        destroy: function(){
+                            this.hammer.destroy();
+                        }
+                    };
                     
                     panZoomInstance = svgPanZoom(svg, {
                         zoomEnabled: true,
@@ -1115,7 +1161,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         fit: true,
                         center: true,
                         minZoom: 0.1,
-                        maxZoom: 10
+                        maxZoom: 10,
+                        customEventsHandler: eventsHandler
                     });
                     
                     // Force resize update
