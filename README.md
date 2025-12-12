@@ -8,22 +8,22 @@ A collection of single-page web tools deployed as Cloudflare Pages.
 
 - **exif-remover**: Remove EXIF meta info from images
   - Idea from [image-scrubber](https://github.com/everestpipkin/image-scrubber)
-  - Deployed at: `exif-remover.pages.dev`
+  - Deployed at: `tizee-exif-remover.pages.dev`
 
 - **flowdown-config**: FlowDown Enterprise Configuration Generator
-  - Deployed at: `flowdown-config.pages.dev`
+  - Deployed at: `tizee-flowdown-config.pages.dev`
 
 - **hdr-tool**: HDR processing tool
-  - Deployed at: `hdr-tool.pages.dev`
+  - Deployed at: `tizee-hdr-tool.pages.dev`
 
 - **daoli-tool**: Daoli tool
-  - Deployed at: `daoli-tool.pages.dev`
+  - Deployed at: `tizee-daoli-tool.pages.dev`
 
 - **emoji-splitter**: Emoji splitter tool
-  - Deployed at: `emoji-splitter.pages.dev`
+  - Deployed at: `tizee-emoji-splitter.pages.dev`
 
 - **solar**: Solar tool
-  - Deployed at: `solar.pages.dev`
+  - Deployed at: `tizee-solar.pages.dev`
 
 ## Prerequisites
 
@@ -83,8 +83,8 @@ To add a new tool:
    ```json
    {
      "$schema": "node_modules/wrangler/config-schema.json",
-     "name": "<tool-name>",
-     "pages_build_output_dir": "."
+     "name": "tizee-<tool-name>",
+     "pages_build_output_dir": "public"
    }
    ```
 

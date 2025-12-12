@@ -1,5 +1,5 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "daoli-tool",
+  "name": "tizee-daoli-tool",
   "pages_build_output_dir": "public"
 }

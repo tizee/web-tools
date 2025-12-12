@@ -1,5 +1,5 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "flowdown-config",
+  "name": "tizee-flowdown-config",
   "pages_build_output_dir": "public"
 }
