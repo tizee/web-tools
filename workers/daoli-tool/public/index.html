@@ -1140,11 +1140,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             // Handle pinch
                             this.hammer.on('pinchstart pinchmove', function(ev){
+                                // On pinch start, record current scale
                                 if (ev.type === 'pinchstart') {
                                     initialScale = instance.getZoom();
-                                    instance.zoomAtPoint(initialScale * ev.scale, {x: ev.center.x, y: ev.center.y});
                                 }
-                                instance.zoomAtPoint(initialScale * ev.scale, {x: ev.center.x, y: ev.center.y});
+                                
+                                // Calculate the center point of the pinch relative to the SVG element
+                                // ev.center is in screen (client) coordinates
+                                var svgRect = options.svgElement.getBoundingClientRect();
+                                var relativePoint = {
+                                    x: ev.center.x - svgRect.left,
+                                    y: ev.center.y - svgRect.top
+                                };
+
+                                // Apply zoom targeting that relative point
+                                instance.zoomAtPoint(initialScale * ev.scale, relativePoint);
                             });
 
                             // Prevent scrolling while interacting with the diagram
