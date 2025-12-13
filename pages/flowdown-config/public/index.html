@@ -3,352 +3,924 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlowDown Enterprise Configuration Generator</title>
+    <title>FlowDown // Configuration Matrix</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #e0e0e0;
-            background-color: #1e1e1e;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
+        :root {
+            --bg-deep: #030508;
+            --bg-panel: #0a0e14;
+            --bg-input: #06080c;
+            
+            --border-dim: #1e293b;
+            --border-bright: #334155;
+            --border-active: #38bdf8;
+            
+            --accent-primary: #0ea5e9;
+            --accent-glow: rgba(14, 165, 233, 0.15);
+            --accent-text: #7dd3fc;
+            
+            --text-main: #f1f5f9;
+            --text-muted: #64748b;
+            --text-dim: #475569;
+            
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-mono: 'Space Mono', monospace;
+            
+            --corner-radius: 2px;
         }
-        h1, h2 {
-            font-size: 1.8rem;
-            margin-bottom: 1rem;
-            color: #f5f5f5;
-        }
-        .notice {
-            background-color: #2d2d2d;
-            border-left: 4px solid #0d6efd;
-            padding: 10px 15px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
-        }
-        form {
-            background-color: #2d2d2d;
-            padding:.75rem 1rem;
-            border-radius: 5px;
-            margin-bottom: 1rem;
-            border: 1px solid #444;
-        }
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        label {
-            display: block;
-            margin-bottom: 0.25rem;
-            font-weight: 500;
-            color: #f0f0f0;
-        }
-        .field-description {
-            display: block;
-            font-size: 0.8rem;
-            color: #a0a0a0;
-            margin-bottom: 0.5rem;
-            font-style: italic;
-        }
-        input[type="text"],
-        input[type="number"],
-        input[type="date"],
-        select {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #555;
-            border-radius: 3px;
+
+        * {
             box-sizing: border-box;
-            font-family: inherit;
-            background-color: #383838;
-            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
         }
-        input[type="text"]:focus,
-        input[type="number"]:focus,
-        input[type="date"]:focus,
-        select:focus {
-            outline: none;
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
-        }
-        .input-with-button {
+
+        body {
+            font-family: var(--font-mono);
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            line-height: 1.5;
+            min-height: 100vh;
             display: flex;
-            gap: 10px;
+            flex-direction: column;
+            background-image: 
+                linear-gradient(rgba(14, 165, 233, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(14, 165, 233, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
         }
-        .input-with-button input {
+
+        /* Layout */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+            width: 100%;
             flex: 1;
+            display: flex;
+            flex-direction: column;
         }
-        .small-button {
-            padding: 0.5rem;
-            background-color: #495057;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
+
+        header {
+            margin-bottom: 3rem;
+            border-bottom: 1px solid var(--border-dim);
+            padding-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            position: relative;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100px;
+            height: 1px;
+            background: var(--accent-primary);
+            box-shadow: 0 0 10px var(--accent-primary);
+        }
+
+        h1 {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            font-weight: 300;
+            letter-spacing: -0.05em;
+            text-transform: uppercase;
+            color: var(--text-main);
+            line-height: 1;
+        }
+        
+        h1 span {
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
             font-size: 0.8rem;
-        }
-        .small-button:hover {
-            background-color: #5c636a;
-        }
-        .checkbox-group {
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
             margin-top: 0.5rem;
         }
+
+        .sys-status {
+            font-size: 0.7rem;
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+            background: rgba(16, 185, 129, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .sys-status::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        /* Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        @media (min-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 4rem;
+                align-items: start;
+            }
+            
+            .preview-pane {
+                position: sticky;
+                top: 2rem;
+            }
+        }
+
+        /* Panels */
+        .panel {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-dim);
+            padding: 2rem;
+            position: relative;
+            margin-bottom: 2rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            width: 10px;
+            height: 10px;
+            border-top: 2px solid var(--border-bright);
+            border-left: 2px solid var(--border-bright);
+            transition: all 0.3s ease;
+        }
+
+        .panel::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            right: -1px;
+            width: 10px;
+            height: 10px;
+            border-bottom: 2px solid var(--border-bright);
+            border-right: 2px solid var(--border-bright);
+            transition: all 0.3s ease;
+        }
+
+        .panel:hover {
+            border-color: var(--border-bright);
+        }
+        
+        .panel:hover::before, .panel:hover::after {
+            width: 20px;
+            height: 20px;
+            border-color: var(--accent-primary);
+        }
+
+        /* Form Sections */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            color: var(--accent-text);
+            font-family: var(--font-display);
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.1em;
+            border-bottom: 1px dashed var(--border-dim);
+            padding-bottom: 0.5rem;
+        }
+
+        .section-index {
+            background: var(--accent-glow);
+            color: var(--accent-primary);
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            font-family: var(--font-mono);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .description {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-bottom: 0.75rem;
+            display: block;
+            font-style: italic;
+        }
+
+        /* Inputs */
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-dim);
+            border-left: 2px solid var(--border-dim);
+            color: var(--text-main);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            padding: 0.75rem 1rem;
+            transition: all 0.2s ease;
+            border-radius: 0 var(--corner-radius) var(--corner-radius) 0;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            line-height: 1.6;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--border-bright);
+            border-left-color: var(--accent-primary);
+            background-color: rgba(6, 8, 12, 0.8);
+            box-shadow: 0 0 20px -5px rgba(0, 0, 0, 0.5);
+        }
+        
+        input.invalid, textarea.invalid {
+            border-left-color: var(--error);
+        }
+
+        /* Buttons */
+        .btn-icon {
+            background: transparent;
+            border: 1px solid var(--border-dim);
+            color: var(--text-muted);
+            cursor: pointer;
+            width: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .btn-icon:hover {
+            color: var(--text-main);
+            border-color: var(--accent-primary);
+            background: var(--accent-glow);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0;
+        }
+        
+        .input-group input {
+            border-right: none;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        
+        .input-group .btn-icon {
+            border-left: none;
+        }
+
+        /* Checkboxes */
+        .checkbox-group {
+            display: flex;
+            gap: 2rem;
+            padding: 0.5rem 0;
+        }
+
         .checkbox-label {
             display: flex;
             align-items: center;
-            margin-bottom: 0.25rem;
-            font-weight: normal;
-            color: #d0d0d0;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            user-select: none;
+            position: relative;
+            padding-left: 2rem;
         }
-        input[type="checkbox"] {
-            margin-right: 0.5rem;
-            accent-color: #0d6efd;
+
+        .checkbox-label input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
         }
-        button {
-            background-color: #0d6efd;
+
+        .checkmark {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            height: 16px;
+            width: 16px;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-dim);
+            transition: all 0.2s;
+        }
+
+        .checkbox-label:hover input ~ .checkmark {
+            border-color: var(--accent-primary);
+        }
+
+        .checkbox-label input:checked ~ .checkmark {
+            background-color: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+            left: 5px;
+            top: 1px;
+            width: 4px;
+            height: 9px;
+            border: solid var(--bg-deep);
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .checkbox-label input:checked ~ .checkmark:after {
+            display: block;
+        }
+
+        /* Preview Area */
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-dim);
+            padding-bottom: 1rem;
+        }
+
+        .preview-label {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--accent-text);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .preview-label::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--accent-primary);
+        }
+
+        .preview-meta {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+
+        #resultArea {
+            background-color: #060709;
+            border: 1px solid var(--border-dim);
+            padding: 1.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 70vh;
+            overflow-y: auto;
+            margin-bottom: 2rem;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+        
+        /* Scrollbar */
+        #resultArea::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        #resultArea::-webkit-scrollbar-track {
+            background: var(--bg-deep);
+        }
+        
+        #resultArea::-webkit-scrollbar-thumb {
+            background: var(--border-dim);
+        }
+        
+        #resultArea::-webkit-scrollbar-thumb:hover {
+            background: var(--border-bright);
+        }
+
+        /* Action Bar */
+        .action-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, var(--accent-primary), #0284c7);
             color: white;
             border: none;
-            border-radius: 3px;
-            padding: 0.5rem 1rem;
+            padding: 1rem 2rem;
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
             cursor: pointer;
-            font-weight: 500;
+            width: 100%;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
         }
-        button:hover {
-            background-color: #0b5ed7;
+
+        .btn-primary:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 0 20px rgba(14, 165, 233, 0.4);
         }
-        #resultArea {
-            background-color: #252525;
-            border: 1px solid #444;
-            border-radius: 3px;
-            padding: 1rem;
-            white-space: pre-wrap;
-            font-family: monospace;
-            margin-bottom: 1rem;
-            max-height: 300px;
-            overflow-y: auto;
-            color: #d0d0d0;
+        
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: 0.5s;
         }
-        .hidden {
-            display: none;
+        
+        .btn-primary:hover::before {
+            left: 100%;
         }
+
+        /* Notice Box */
+        .notice {
+            border-left: 2px solid var(--accent-primary);
+            background: linear-gradient(90deg, var(--accent-glow), transparent);
+            padding: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        
+        .notice-header {
+            color: var(--accent-text);
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .notice ul {
+            list-style: none;
+        }
+
+        .notice li {
+            position: relative;
+            padding-left: 1.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .notice li::before {
+            content: ">>";
+            color: var(--accent-primary);
+            position: absolute;
+            left: 0;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+
+        /* Syntax Highlight */
+        .xml-tag { color: #f472b6; }
+        .xml-attr { color: #a78bfa; }
+        .xml-val { color: #7dd3fc; }
+        .xml-content { color: #e2e8f0; }
+
+        /* Animation */
+        @keyframes scanline {
+            0% { transform: translateY(-100%); opacity: 0; }
+            50% { opacity: 0.5; }
+            100% { transform: translateY(100vh); opacity: 0; }
+        }
+
+        .scan-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: linear-gradient(transparent 50%, rgba(0, 0, 0, 0.1) 50%);
+            background-size: 100% 4px;
+            z-index: 999;
+            opacity: 0.2;
+        }
+
     </style>
 </head>
 <body>
-    <h1>FlowDown Enterprise Configuration Generator</h1>
+    <div class="scan-overlay"></div>
+    <div class="container">
+        <header>
+            <div>
+                <h1>FlowDown <span>Config</span></h1>
+                <p class="subtitle">Proprietary Format Generator v2.1</p>
+            </div>
+            <div class="sys-status">
+                SYSTEM ONLINE
+            </div>
+        </header>
 
-    <div class="notice">
-        <p><strong>Note:</strong></p>
-        <ol>
-            <li><strong>Required Fields:</strong> All parameter fields must be retained in the configuration file, even if you do not need to modify some fields. Some fields support the use of empty strings or empty sets.</li>
-            <li><strong>File Format:</strong> The configuration file must conform to the PropertyList format, supporting binary or XML formats.</li>
-            <li><strong>Compatibility Requirements:</strong> Custom API endpoints must be compatible with FlowDown's request format, including input parameter structure and return format.</li>
-        </ol>
-    </div>
+        <div class="notice">
+            <div class="notice-header">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Protocol Guidelines
+            </div>
+            <ul>
+                <li>Mandatory parameter retention. Empty strings/sets permitted.</li>
+                <li>Output strictly adheres to Apple PropertyList (XML/Binary) specifications.</li>
+                <li>Verify endpoint schemas against host documentation.</li>
+            </ul>
+        </div>
 
-    <form id="configForm">
-        <div class="form-group">
-            <label for="id">ID (UUID format recommended):</label>
-            <span class="field-description">Unique identifier for the model configuration. You can enter your own or generate a random UUID.</span>
-            <div class="input-with-button">
-                <input type="text" id="id" name="id" required>
-                <button type="button" id="generateUuidBtn" class="small-button">Generate UUID</button>
+        <div class="main-grid">
+            <!-- Left Column: Form -->
+            <div class="form-pane">
+                <form id="configForm">
+                    
+                    <div class="panel">
+                        <div class="section-header">
+                            <span class="section-index">01</span>
+                            Identity Matrix
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="id">UUID Sequence</label>
+                            <span class="description">Unique identifier for this configuration instance.</span>
+                            <div class="input-group">
+                                <input type="text" id="id" name="id" required readonly style="cursor: not-allowed; color: var(--text-dim);">
+                                <button type="button" id="generateUuidBtn" class="btn-icon" title="Regenerate UUID">
+                                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="name">Display Designation</label>
+                            <span class="description">Human-readable reference tag.</span>
+                            <input type="text" id="name" name="name" placeholder="e.g. OMEGA-PRIME-01" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="model_identifier">Model ID</label>
+                            <span class="description">Target API model identifier string.</span>
+                            <input type="text" id="model_identifier" name="model_identifier" placeholder="e.g. gpt-4-turbo-preview" required>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="section-header">
+                            <span class="section-index">02</span>
+                            Network Uplink
+                        </div>
+
+                        <div class="form-group">
+                            <label for="endpoint">Inference Endpoint</label>
+                            <span class="description">Full qualified URL including API versioning.</span>
+                            <input type="text" id="endpoint" name="endpoint" placeholder="https://api.cluster.local/v1/chat/completions" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="response_format">Data Schema</label>
+                            <span class="description">Expected JSON response structure.</span>
+                            <select id="response_format" name="response_format" required>
+                                <option value="chatCompletions">chatCompletions (Standard)</option>
+                                <option value="responses">responses (Legacy)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="model_list_endpoint">Discovery Endpoint</label>
+                            <span class="description">Relative or absolute path for model capabilities.</span>
+                            <input type="text" id="model_list_endpoint" name="model_list_endpoint" value="$INFERENCE_ENDPOINT$/../../models" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="token">Auth Token</label>
+                            <span class="description">Bearer credential or API Key. Stored securely.</span>
+                            <input type="text" id="token" name="token" placeholder="sk-..." autocomplete="off">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="headers">Header Overrides</label>
+                            <span class="description">JSON object. Merged with default transport headers.</span>
+                            <textarea id="headers" name="headers" placeholder='{"X-Custom-Auth": "value"}' spellcheck="false"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="section-header">
+                            <span class="section-index">03</span>
+                            Parameters
+                        </div>
+
+                        <div class="form-group">
+                            <label for="context">Context Buffer</label>
+                            <select id="context" name="context" required>
+                                <option value="4000">4K (Standard)</option>
+                                <option value="8000">8K (Extended)</option>
+                                <option value="16000">16K (Large)</option>
+                                <option value="32000">32K (Very Large)</option>
+                                <option value="64000">64K (Huge)</option>
+                                <option value="100000">100K (Massive)</option>
+                                <option value="200000">200K (Ultra)</option>
+                                <option value="1000000">1M (Gemini)</option>
+                                <option value="2147483647">Infinity (Unbounded)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="body_fields">Payload Injection</label>
+                            <span class="description">Static JSON fields merged into request body.</span>
+                            <textarea id="body_fields" name="body_fields" placeholder='{"temperature": 0.7, "top_p": 0.9}' spellcheck="false"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>System Capabilities</label>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="capabilities" value="visual">
+                                    <span class="checkmark"></span>
+                                    Visual / Multimodal
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="capabilities" value="tool">
+                                    <span class="checkmark"></span>
+                                    Function Calling
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="isProfileInControl">User Control Override</label>
+                            <span class="description">Enforce profile-level constraints and warnings.</span>
+                            <select id="isProfileInControl" name="isProfileInControl" required>
+                                <option value="true">True (Active)</option>
+                                <option value="false">False (Passive)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="comment">Annotation</label>
+                            <input type="text" id="comment" name="comment" placeholder="Internal remarks...">
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Right Column: Preview -->
+            <div class="preview-pane">
+                <div class="panel" style="border-color: var(--accent-primary);">
+                    <div class="preview-header">
+                        <span class="preview-label">Live Output Stream</span>
+                        <div class="preview-meta">FMT: PLIST/XML</div>
+                    </div>
+                    
+                    <div id="resultArea">
+                        <!-- Content will be generated here -->
+                    </div>
+
+                    <div class="action-bar">
+                        <button type="button" id="downloadBtn" class="btn-primary">
+                            <span>Initialize Download</span>
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <div class="form-group">
-            <label for="model_identifier">Model Identifier:</label>
-            <span class="field-description">Unique name used for API calls to identify this model (e.g., "openai-large", "anthropic-haiku").</span>
-            <input type="text" id="model_identifier" name="model_identifier" required>
-        </div>
-
-        <div class="form-group">
-            <label for="model_list_endpoint">Model List Endpoint:</label>
-            <span class="field-description">API endpoint for retrieving the list of available models. $INFERENCE_ENDPOINT$ will be replaced with your endpoint URL.</span>
-            <input type="text" id="model_list_endpoint" name="model_list_endpoint" value="$INFERENCE_ENDPOINT$/../../models" required>
-        </div>
-
-        <div class="form-group">
-            <label for="endpoint">Endpoint URL:</label>
-            <span class="field-description">Main API endpoint for model inference, should include the complete path including /v1/chat/completions suffix.</span>
-            <input type="text" id="endpoint" name="endpoint" placeholder="https://example.com/v1/chat/completions" required>
-        </div>
-
-        <div class="form-group">
-            <label for="token">Access Token/Key (can be empty):</label>
-            <span class="field-description">Authentication token or API key for the service. Can be left empty if authentication is not needed.</span>
-            <input type="text" id="token" name="token">
-        </div>
-
-        <div class="form-group">
-            <label>Capabilities:</label>
-            <span class="field-description">Features supported by the model. Select the capabilities this model provides.</span>
-            <div class="checkbox-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" name="capabilities" value="visual"> Visual
-                </label>
-                <label class="checkbox-label">
-                    <input type="checkbox" name="capabilities" value="tool"> Tool
-                </label>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label for="context">Context Window Length:</label>
-            <span class="field-description">Maximum number of tokens the model can process in a single request.</span>
-            <select id="context" name="context" required>
-                <option value="4000">Short (4K)</option>
-                <option value="8000">Short (8K)</option>
-                <option value="16000">Medium (16K)</option>
-                <option value="32000">Medium (32K)</option>
-                <option value="64000">Medium (64K)</option>
-                <option value="100000">Long (100K)</option>
-                <option value="200000">Long (200K)</option>
-                <option value="1000000">Huge (1M)</option>
-                <option value="2147483647">Infinity</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="isProfileInControl">Is Profile In Control:</label>
-            <span class="field-description">Controls whether FlowDown displays warning prompts to users about this configuration.</span>
-            <select id="isProfileInControl" name="isProfileInControl" required>
-                <option value="true">True</option>
-                <option value="false">False</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="comment">Comment (can be empty):</label>
-            <span class="field-description">Optional notes about this configuration (not displayed in the FlowDown interface).</span>
-            <input type="text" id="comment" name="comment">
-        </div>
-
-        <button type="button" id="generateBtn">Generate Configuration</button>
-    </form>
-
-    <div id="resultContainer" class="hidden">
-        <h2>Generated Configuration:</h2>
-        <div id="resultArea"></div>
-        <button id="downloadBtn">Download XML</button>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            /**
-             * Generate an RFC4122 version 4 compliant UUID
-             * This implementation follows the specification more precisely
-             * @returns {string} A randomly generated UUID
-             */
+            // --- Logic ---
+            
             function generateUUID() {
-                // Create array of random bytes
                 const randomBytes = new Uint8Array(16);
                 crypto.getRandomValues(randomBytes);
-
-                // Set the version (4) and variant bits according to RFC4122
-                randomBytes[6] = (randomBytes[6] & 0x0f) | 0x40; // version 4
-                randomBytes[8] = (randomBytes[8] & 0x3f) | 0x80; // variant 1
-
-                // Format the UUID string
+                randomBytes[6] = (randomBytes[6] & 0x0f) | 0x40; 
+                randomBytes[8] = (randomBytes[8] & 0x3f) | 0x80; 
                 let uuid = '';
                 for (let i = 0; i < 16; i++) {
-                    // Add hyphens at positions 4, 6, 8, and 10
-                    if (i === 4 || i === 6 || i === 8 || i === 10) {
-                        uuid += '-';
-                    }
-
-                    // Convert byte to hex and pad with zero if needed
+                    if (i === 4 || i === 6 || i === 8 || i === 10) uuid += '-';
                     uuid += randomBytes[i].toString(16).padStart(2, '0');
                 }
-
                 return uuid.toUpperCase();
             }
 
-            // Populate the ID field with a random UUID
-            document.getElementById('id').value = generateUUID();
-
-            // Add event listener for the generate UUID button
-            document.getElementById('generateUuidBtn').addEventListener('click', function() {
-                document.getElementById('id').value = generateUUID();
-            });
-
-            // Set the creation date to the current date in ISO format
+            // State
+            let currentUUID = generateUUID();
             const now = new Date();
 
-            document.getElementById('generateBtn').addEventListener('click', function() {
-                // Collect form data
-                const id = document.getElementById('id').value;
-                const model_identifier = document.getElementById('model_identifier').value;
-                const model_list_endpoint = document.getElementById('model_list_endpoint').value;
-                const endpoint = document.getElementById('endpoint').value;
-                const token = document.getElementById('token').value;
+            // Elements
+            const form = document.getElementById('configForm');
+            const resultArea = document.getElementById('resultArea');
+            const idInput = document.getElementById('id');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const regenerateBtn = document.getElementById('generateUuidBtn');
+
+            // Init
+            idInput.value = currentUUID;
+
+            function escapeXml(unsafe) {
+                return unsafe.replace(/[<>&'"\\]/g, function (c) {
+                    switch (c) {
+                        case '<': return '&lt;';
+                        case '>': return '&gt;';
+                        case '&': return '&amp;';
+                        case '\'': return '&apos;';
+                        case '"': return '&quot;';
+                        case '\\': return '\\';
+                    }
+                });
+            }
+
+            function updatePreview() {
+                const caps = Array.from(document.querySelectorAll('input[name="capabilities"]:checked')).map(el => el.value);
+                
+                // Get values
+                const id = idInput.value;
+                const name = document.getElementById('name').value || '';
+                const model_identifier = document.getElementById('model_identifier').value || '';
+                const endpoint = document.getElementById('endpoint').value || '';
+                const response_format = document.getElementById('response_format').value || 'chatCompletions';
+                const model_list_endpoint = document.getElementById('model_list_endpoint').value || '';
+                const token = document.getElementById('token').value || '';
+                const headersRaw = document.getElementById('headers').value;
                 const context = document.getElementById('context').value;
+                const bodyFieldsRaw = document.getElementById('body_fields').value;
                 const isProfileInControl = document.getElementById('isProfileInControl').value;
-                const comment = document.getElementById('comment').value;
+                const comment = document.getElementById('comment').value || '';
 
-                // Get selected capabilities
-                const capabilitiesElements = document.querySelectorAll('input[name="capabilities"]:checked');
-                const capabilities = Array.from(capabilitiesElements).map(el => el.value);
+                // Process JSON fields
+                let headersXml = '';
+                try {
+                    if (headersRaw.trim()) {
+                        const hObj = JSON.parse(headersRaw);
+                        headersXml = '\t<key>headers</key>\n\t<dict>\n';
+                        for (const [k, v] of Object.entries(hObj)) {
+                            headersXml += `\t\t<key>${k}</key>\n\t\t<string>${v}</string>\n`;
+                        }
+                        headersXml += '\t</dict>';
+                        document.getElementById('headers').classList.remove('invalid');
+                    }
+                } catch (e) {
+                    document.getElementById('headers').classList.add('invalid');
+                }
 
-                // Format the current date in ISO format
-                const formattedDate = now.toISOString().replace(/\.\d+/, '');
+                let bodyFieldsXml = '';
+                try {
+                    if (bodyFieldsRaw.trim()) {
+                        // Validate JSON
+                        JSON.parse(bodyFieldsRaw);
+                        // Store as string as per requirement
+                        bodyFieldsXml = `\t<key>body_fields</key>\n\t<string>${escapeXml(bodyFieldsRaw)}</string>`;
+                        document.getElementById('body_fields').classList.remove('invalid');
+                    }
+                } catch (e) {
+                    document.getElementById('body_fields').classList.add('invalid');
+                }
 
-                // Generate XML
-                const xmlContent = generateXML(id, model_identifier, model_list_endpoint, endpoint, token, capabilities, context, isProfileInControl, comment, formattedDate);
+                // Format XML
+                const creationDate = now.toISOString().replace(/\.\d+/, '');
+                
+                let capabilitiesXml = '';
+                if (caps.length > 0) {
+                    capabilitiesXml = `\t<key>capabilities</key>\n\t<array>\n${caps.map(cap => `\t\t<string>${cap}</string>`).join('\n')}\n\t</array>`;
+                }
 
-                // Display the result
-                document.getElementById('resultArea').textContent = xmlContent;
-                document.getElementById('resultContainer').classList.remove('hidden');
+                // Build Plist Content (Sorted keys for neatness)
+                const xmlParts = [
+                    bodyFieldsXml,
+                    capabilitiesXml,
+                    `\t<key>comment</key>\n\t<string>${escapeXml(comment)}</string>`,
+                    `\t<key>context</key>\n\t<integer>${context}</integer>`,
+                    `\t<key>creation</key>\n\t<date>${creationDate}</date>`,
+                    `\t<key>endpoint</key>\n\t<string>${escapeXml(endpoint)}</string>`,
+                    headersXml,
+                    `\t<key>id</key>\n\t<string>${id}</string>`,
+                    `\t<key>isProfileInControl</key>\n\t<${isProfileInControl}/>`,
+                    `\t<key>model_identifier</key>\n\t<string>${escapeXml(model_identifier)}</string>`,
+                    `\t<key>model_list_endpoint</key>\n\t<string>${escapeXml(model_list_endpoint)}</string>`,
+                    `\t<key>name</key>\n\t<string>${escapeXml(name)}</string>`,
+                    `\t<key>response_format</key>\n\t<string>${response_format}</string>`,
+                    `\t<key>token</key>\n\t<string>${escapeXml(token)}</string>`
+                ];
+
+                const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+${xmlParts.filter(p => p.trim() !== '').join('\n')}
+</dict>
+</plist>`;
+
+                // Simple syntax highlight for preview
+                const escaped = xml.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const highlighted = escaped
+                    .replace(/(&lt;\/?[\w\?]+)/g, '<span class="xml-tag">$1</span>') // tags
+                    .replace(/(&lt;key&gt;)(.*?)(&lt;\/key&gt;)/g, '$1<span class="xml-attr">$2</span>$3'); // keys
+
+                resultArea.innerHTML = highlighted;
+                
+                // Store raw XML for download
+                resultArea.dataset.raw = xml;
+            }
+
+            // Event Listeners
+            form.addEventListener('input', updatePreview);
+            
+            regenerateBtn.addEventListener('click', () => {
+                currentUUID = generateUUID();
+                idInput.value = currentUUID;
+                updatePreview();
             });
 
-            document.getElementById('downloadBtn').addEventListener('click', function() {
-                const xmlContent = document.getElementById('resultArea').textContent;
+            downloadBtn.addEventListener('click', () => {
+                const xmlContent = resultArea.dataset.raw;
+                if (!xmlContent) return;
+                
                 const blob = new Blob([xmlContent], { type: 'application/xml' });
                 const url = URL.createObjectURL(blob);
-
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'FlowDown-EnterpriseConfig.plist';
+                a.download = `FlowDown-Config-${document.getElementById('model_identifier').value || 'Untitled'}.plist`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             });
 
-            function generateXML(id, model_identifier, model_list_endpoint, endpoint, token, capabilities, context, isProfileInControl, comment, creationDate) {
-                let capabilitiesXml = '';
-
-                if (capabilities.length > 0) {
-                    capabilitiesXml = capabilities.map(cap => `\t\t<string>${cap}</string>`).join('\n');
-                }
-
-                return `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-\t<key>capabilities</key>
-\t<array>
-${capabilitiesXml}
-\t</array>
-\t<key>comment</key>
-\t<string>${comment}</string>
-\t<key>context</key>
-\t<integer>${context}</integer>
-\t<key>creation</key>
-\t<date>${creationDate}</date>
-\t<key>endpoint</key>
-\t<string>${endpoint}</string>
-\t<key>id</key>
-\t<string>${id}</string>
-\t<key>isProfileInControl</key>
-\t<${isProfileInControl}/>
-\t<key>model_identifier</key>
-\t<string>${model_identifier}</string>
-\t<key>model_list_endpoint</key>
-\t<string>${model_list_endpoint}</string>
-\t<key>token</key>
-\t<string>${token}</string>
-</dict>
-</plist>`;
-            }
+            // Initial render
+            updatePreview();
         });
     </script>
 </body>
