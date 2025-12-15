@@ -10,13 +10,15 @@
     "dev:daoli": "cd pages/daoli-tool && wrangler pages dev public",
     "dev:emoji": "cd pages/emoji-splitter && wrangler pages dev public",
     "dev:solar": "cd pages/solar && wrangler pages dev public",
+    "dev:pyramid": "cd pages/pyramid-filter && wrangler pages dev public",
     "deploy:exif": "cd pages/exif-remover && wrangler pages deploy public",
     "deploy:flowdown": "cd pages/flowdown-config && wrangler pages deploy public",
     "deploy:hdr": "cd pages/hdr-tool && wrangler pages deploy public",
     "deploy:daoli": "cd pages/daoli-tool && wrangler pages deploy public",
     "deploy:emoji": "cd pages/emoji-splitter && wrangler pages deploy public",
     "deploy:solar": "cd pages/solar && wrangler pages deploy public",
-    "deploy:all": "pnpm run deploy:exif && pnpm run deploy:flowdown && pnpm run deploy:hdr && pnpm run deploy:daoli && pnpm run deploy:emoji && pnpm run deploy:solar"
+    "deploy:pyramid": "cd pages/pyramid-filter && wrangler pages deploy public",
+    "deploy:all": "pnpm run deploy:exif && pnpm run deploy:flowdown && pnpm run deploy:hdr && pnpm run deploy:daoli && pnpm run deploy:emoji && pnpm run deploy:solar && pnpm run deploy:pyramid"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

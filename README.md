@@ -25,6 +25,10 @@ A collection of single-page web tools deployed as Cloudflare Pages.
 - **solar**: Solar tool
   - Deployed at: `tizee-solar.pages.dev`
 
+- **pyramid-filter**: Triangular Pyramid Image Filter (WebGL)
+  - Map images onto a triangular pyramid with interactive geometry controls
+  - Deployed at: `tizee-filter-emoji.pages.dev`
+
 ## Prerequisites
 
 1. Install [Node.js](https://nodejs.org/) (v16.17.0 or later)
@@ -49,6 +53,7 @@ pnpm dev:hdr       # HDR tool
 pnpm dev:daoli     # Daoli tool
 pnpm dev:emoji     # Emoji splitter
 pnpm dev:solar     # Solar tool
+pnpm dev:pyramid   # Pyramid filter
 ```
 
 ## Deployment
@@ -61,6 +66,7 @@ pnpm deploy:hdr
 pnpm deploy:daoli
 pnpm deploy:emoji
 pnpm deploy:solar
+pnpm deploy:pyramid
 ```
 
 ### Deploy all tools
