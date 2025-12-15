@@ -27,7 +27,7 @@ A collection of single-page web tools deployed as Cloudflare Pages.
 
 - **pyramid-filter**: Triangular Pyramid Image Filter (WebGL)
   - Map images onto a triangular pyramid with interactive geometry controls
-  - Deployed at: `tizee-filter-emoji.pages.dev`
+  - Deployed at: `tizee-pyramid-filter.pages.dev`
 
 ## Prerequisites
 
