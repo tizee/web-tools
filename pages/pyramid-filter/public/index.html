@@ -1,0 +1,1886 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BOX CORNER /// EMOJI MAKER</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* Palette: Warm Box / Packaging Theme */
+            --bg-deep: #0a0805;
+            --bg-panel: #0f0d0a;
+            --bg-surface: #1a1612;
+
+            --accent-primary: #ff9d00; /* Warm Orange */
+            --accent-secondary: #ff5500; /* Deep Orange */
+            --accent-dim: rgba(255, 157, 0, 0.1);
+
+            --text-main: #e0dcd8;
+            --text-muted: #666055;
+            --text-highlight: #ffffff;
+
+            --border-light: #332e28;
+            --border-active: #ff9d00;
+
+            --font-display: 'Space Grotesk', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+
+            --spacing-unit: 8px;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: var(--font-display);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Header --- */
+        .app-header {
+            flex: 0 0 auto;
+            padding: calc(var(--spacing-unit) * 2);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 8, 5, 0.95);
+            z-index: 100;
+        }
+
+        .brand {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: -0.5px;
+            color: var(--text-highlight);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brand::before {
+            content: '';
+            display: block;
+            width: 8px;
+            height: 8px;
+            background: var(--accent-primary);
+            border-radius: 2px;
+            box-shadow: 0 0 8px var(--accent-primary);
+        }
+
+        .status-badge {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent-primary);
+            border: 1px solid var(--accent-primary);
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            text-transform: uppercase;
+        }
+
+        /* --- Main Layout --- */
+        .layout-grid {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        @media (min-width: 1024px) {
+            .layout-grid {
+                display: grid;
+                grid-template-columns: 3fr 2fr;
+                overflow: hidden;
+            }
+        }
+
+        /* --- Viewport (Canvas) --- */
+        .viewport-section {
+            position: relative;
+            background: var(--bg-deep);
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid var(--border-light);
+            flex: 0 0 45vh;
+            z-index: 10;
+        }
+
+        @media (min-width: 1024px) {
+            .viewport-section {
+                flex: auto;
+                height: 100%;
+                border-bottom: none;
+                border-right: 1px solid var(--border-light);
+            }
+        }
+
+        .canvas-container {
+            width: 100%;
+            position: relative;
+            background-image:
+                radial-gradient(circle at center, #1a1510 1px, transparent 1px),
+                linear-gradient(to right, #151210 1px, transparent 1px),
+                linear-gradient(to bottom, #151210 1px, transparent 1px);
+            background-size: 20px 20px, 40px 40px, 40px 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            transition: opacity 0.3s ease;
+            touch-action: none;
+        }
+
+        .viewport-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* --- Controls Panel --- */
+        .controls-section {
+            background: var(--bg-panel);
+            overflow-y: auto;
+            padding: calc(var(--spacing-unit) * 3);
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            flex: 1;
+            padding-bottom: 60px;
+        }
+
+        @media (min-width: 1024px) {
+            .controls-section {
+                height: 100%;
+                padding-bottom: calc(var(--spacing-unit) * 3);
+            }
+        }
+
+        /* Section Headers */
+        .control-header {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* File Upload Styling */
+        .upload-zone {
+            position: relative;
+            width: 100%;
+            height: 120px;
+            border: 1px dashed var(--text-muted);
+            border-radius: var(--radius-md);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: var(--bg-surface);
+            overflow: hidden;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent-primary);
+            background: var(--accent-dim);
+        }
+
+        .upload-input {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .upload-label {
+            font-family: var(--font-mono);
+            color: var(--text-main);
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upload-icon {
+            font-size: 1.5rem;
+            color: var(--accent-primary);
+        }
+
+        /* Slider Controls */
+        .control-group {
+            margin-bottom: 24px;
+        }
+
+        .control-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .label-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .value-display {
+            font-family: var(--font-mono);
+            color: var(--accent-primary);
+            font-size: 0.85rem;
+            background: rgba(255, 157, 0, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            min-width: 48px;
+            text-align: right;
+        }
+
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .slider-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            color: var(--text-main);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 1.2rem;
+            transition: all 0.1s;
+        }
+
+        .slider-btn:active {
+            background: var(--border-light);
+            transform: translateY(1px);
+        }
+
+        /* Custom Range Input */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: var(--border-light);
+            border-radius: 2px;
+            outline: none;
+            flex: 1;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--bg-deep);
+            border: 2px solid var(--accent-primary);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow: 0 0 10px rgba(255, 157, 0, 0.3);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: var(--accent-primary);
+        }
+
+        /* Presets Grid */
+        .presets-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .preset-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            text-align: center;
+        }
+
+        .preset-card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 15px var(--accent-dim);
+        }
+
+        .preset-icon {
+            font-size: 1.5rem;
+        }
+
+        .preset-name {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        /* Action Buttons */
+        .action-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-family: var(--font-mono);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: var(--bg-deep);
+        }
+
+        .btn-primary:hover {
+            background: #ffb030;
+            box-shadow: 0 0 20px var(--accent-dim);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-main);
+            background: var(--bg-surface);
+        }
+
+        /* Toggle Switch */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 8px 0;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: var(--border-light);
+            border-radius: 12px;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        input[type="checkbox"] {
+            display: none;
+        }
+
+        input[type="checkbox"]:checked + .toggle-switch {
+            background: var(--accent-primary);
+        }
+
+        input[type="checkbox"]:checked + .toggle-switch::after {
+            transform: translateX(20px);
+        }
+
+        /* How It Works Section */
+        .docs-section {
+            border-top: 1px solid var(--border-light);
+            padding-top: 32px;
+            margin-top: 16px;
+        }
+
+        .diagram-container {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .diagram-viewport {
+            width: 100%;
+            height: 260px;
+            overflow: hidden;
+            border-radius: var(--radius-sm);
+            background: rgba(0, 0, 0, 0.15);
+            touch-action: none;
+        }
+
+        .diagram-viewport .mermaid,
+        .diagram-viewport svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .diagram-box {
+            display: inline-block;
+            position: relative;
+            width: 200px;
+            height: 150px;
+            perspective: 400px;
+            margin: 20px auto;
+        }
+
+        .diagram-face {
+            position: absolute;
+            border: 2px solid var(--accent-primary);
+            background: rgba(255, 157, 0, 0.1);
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .diagram-face.front {
+            width: 100px;
+            height: 120px;
+            right: 0;
+            transform: rotateY(-20deg);
+            transform-origin: left center;
+        }
+
+        .diagram-face.side {
+            width: 80px;
+            height: 120px;
+            left: 20px;
+            transform: rotateY(70deg);
+            transform-origin: right center;
+        }
+
+        .diagram-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 20px;
+        }
+
+        /* Mobile specific adjustments */
+        @media (max-width: 768px) {
+            .app-header {
+                padding: var(--spacing-unit) calc(var(--spacing-unit) * 2);
+            }
+
+            .brand {
+                font-size: 1rem;
+            }
+
+            .canvas-container {
+                min-height: 50vh;
+            }
+
+            .controls-section {
+                padding: calc(var(--spacing-unit) * 2);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="brand">BOX CORNER</div>
+        <div class="status-badge">EMOJI MAKER</div>
+    </header>
+
+    <div class="layout-grid">
+        <!-- Canvas Viewport -->
+        <section class="viewport-section">
+            <div class="viewport-overlay">
+                MODE: PYRAMID TENT<br>
+                DRAG APEX · h=HEIGHT
+            </div>
+            <div class="canvas-container" id="canvasContainer">
+                <canvas id="outputCanvas"></canvas>
+                <div id="axisDisplay" style="position: absolute; bottom: 20px; right: 20px; width: 80px; height: 80px; pointer-events: none; z-index: 20;"></div>
+            </div>
+        </section>
+
+        <!-- Control Panel -->
+        <aside class="controls-section">
+
+            <!-- Input Source -->
+            <div>
+                <div class="control-header">01 // INPUT SOURCE</div>
+                <div class="upload-zone">
+                    <input type="file" id="imageUpload" accept="image/*" class="upload-input">
+                    <div class="upload-label">
+                        <span class="upload-icon">📦</span>
+                        <span>LOAD IMAGE DATA</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Presets -->
+            <div>
+                <div class="control-header">02 // PRESET EFFECTS</div>
+                <div class="presets-grid">
+                    <div class="preset-card" data-preset="snack">
+                        <span class="preset-icon">🍜</span>
+                        <span class="preset-name">SNACK BOX</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Parameters -->
+            <div>
+                <div class="control-header">03 // ADJUST CAMERA</div>
+
+                <!-- Camera Yaw (Orbit Horizontal) -->
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <span class="label-text">CAMERA YAW</span>
+                        <span id="boxAngleVal" class="value-display">0°</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <button class="slider-btn" data-input="boxAngleInput" data-adjust="-5">-</button>
+                        <input type="range" id="boxAngleInput" min="-180" max="180" step="1" value="0">
+                        <button class="slider-btn" data-input="boxAngleInput" data-adjust="5">+</button>
+                    </div>
+                </div>
+
+                <!-- Camera Pitch (Orbit Vertical) -->
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <span class="label-text">CAMERA PITCH</span>
+                        <span id="pitchVal" class="value-display">0°</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <button class="slider-btn" data-input="pitchInput" data-adjust="-5">-</button>
+                        <input type="range" id="pitchInput" min="-90" max="90" step="1" value="0">
+                        <button class="slider-btn" data-input="pitchInput" data-adjust="5">+</button>
+                    </div>
+                </div>
+
+                <!-- Camera Roll -->
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <span class="label-text">CAMERA ROLL</span>
+                        <span id="cameraRollVal" class="value-display">0°</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <button class="slider-btn" data-input="cameraRollInput" data-adjust="-5">-</button>
+                        <input type="range" id="cameraRollInput" min="-180" max="180" step="1" value="0">
+                        <button class="slider-btn" data-input="cameraRollInput" data-adjust="5">+</button>
+                    </div>
+                </div>
+
+                <!-- Corner Elevation -->
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <span class="label-text">CORNER ELEVATION (h)</span>
+                        <span id="elevationVal" class="value-display">0.00</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <button class="slider-btn" data-input="elevationInput" data-adjust="-0.05">-</button>
+                        <input type="range" id="elevationInput" min="-1.0" max="1.0" step="0.01" value="0">
+                        <button class="slider-btn" data-input="elevationInput" data-adjust="0.05">+</button>
+                    </div>
+                </div>
+
+                <label class="toggle-row">
+                    <span class="label-text">FLIP NORMAL</span>
+                    <input type="checkbox" id="flipNormalInput">
+                    <div class="toggle-switch"></div>
+                </label>
+
+                <!-- Image Scale -->
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <span class="label-text">ZOOM</span>
+                        <span id="scaleVal" class="value-display">1.00</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <button class="slider-btn" data-input="scaleInput" data-adjust="-0.1">-</button>
+                        <input type="range" id="scaleInput" min="0.3" max="2.0" step="0.1" value="1.0">
+                        <button class="slider-btn" data-input="scaleInput" data-adjust="0.1">+</button>
+                    </div>
+                </div>
+
+                <!-- Apex X (Lift Position) -->
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <span class="label-text">LIFT X</span>
+                        <span id="offsetXVal" class="value-display">0.00</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <button class="slider-btn" data-input="offsetXInput" data-adjust="-0.05">-</button>
+                        <input type="range" id="offsetXInput" min="-2.00" max="2.00" step="0.01" value="0.00">
+                        <button class="slider-btn" data-input="offsetXInput" data-adjust="0.05">+</button>
+                    </div>
+                </div>
+
+                <!-- Apex Y (Lift Position) -->
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <span class="label-text">LIFT Y</span>
+                        <span id="offsetYVal" class="value-display">0.00</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <button class="slider-btn" data-input="offsetYInput" data-adjust="-0.05">-</button>
+                        <input type="range" id="offsetYInput" min="-2.00" max="2.00" step="0.01" value="0.00">
+                    <button class="slider-btn" data-input="offsetYInput" data-adjust="0.05">+</button>
+                </div>
+            </div>
+
+                <!-- Pyramid Spin -->
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <span class="label-text">PYRAMID SPIN</span>
+                        <span id="pyrSpinVal" class="value-display">0°</span>
+                    </div>
+                    <div class="slider-wrapper">
+                        <button class="slider-btn" data-input="pyrSpinInput" data-adjust="-5">-</button>
+                        <input type="range" id="pyrSpinInput" min="-360" max="360" step="1" value="0">
+                        <button class="slider-btn" data-input="pyrSpinInput" data-adjust="5">+</button>
+                    </div>
+                </div>
+
+                <label class="toggle-row">
+                    <span class="label-text">SHOW GRID REFERENCE</span>
+                    <input type="checkbox" id="showGrid" checked>
+                    <div class="toggle-switch"></div>
+                </label>
+            </div>
+
+            <!-- Action -->
+            <div class="action-row">
+                <button id="downloadBtn" class="btn btn-primary">DOWNLOAD RESULT</button>
+            </div>
+
+            <!-- How It Works -->
+            <div class="docs-section">
+                <div class="control-header">HOW IT WORKS</div>
+                <div class="diagram-container">
+                    <div class="diagram-viewport" id="diagramViewport">
+                        <div class="mermaid" id="pyramidPipelineDiagram">
+flowchart TD
+  subgraph CPU["CPU / UI"]
+    Upload["Upload image"] --> Texture["Create WebGL texture"]
+    Drag["Drag vertices A, B0, B1, B2"] --> Uniforms["Update uniforms"]
+    Sliders["Camera / h / spin / zoom"] --> Uniforms
+  end
+
+  subgraph GPU["GPU / Fragment shader - inverse mapping"]
+    Quad["Full-screen quad"] --> Ray["Per-pixel camera ray"]
+    Ray --> Hit{"Closest valid hit"}
+    Hit -->|Table plane z=0, masked when h nonzero| PlaneUV["UV from hit XY"]
+    Hit -->|Pyramid faces, 3 triangles| FaceUV["UV from hit XY"]
+    PlaneUV --> Sample["Sample image texture"]
+    FaceUV --> Sample
+    Sample --> Shade["Face shading + optional overlay"]
+    Shade --> Out["gl_FragColor"]
+  end
+
+  Texture --> Quad
+  Uniforms --> Quad
+  Out --> Export["Export PNG (grid hidden)"]
+                        </div>
+                    </div>
+                    <div class="diagram-label">
+                        Mermaid diagram supports pan/zoom (mouse wheel + drag).<br>
+                        Geometry: base triangle (B0/B1/B2) on table, apex A at height <code>h</code>.<br>
+                        <strong>h=0 → flat (identity)</strong> | h&gt;0 → convex | h&lt;0 → concave
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+    </div>
+
+<script src="https://unpkg.com/mermaid@11.12.2/dist/mermaid.min.js"></script>
+<script src="https://unpkg.com/svg-pan-zoom@3.6.2/dist/svg-pan-zoom.min.js"></script>
+
+<script>
+/**
+ * Box Corner Projection - WebGL Renderer
+ * Maps an image onto two faces of a 3D box meeting at a corner.
+ * The image center is positioned at the corner edge.
+ */
+
+const vsSource = `
+    attribute vec4 aVertexPosition;
+    attribute vec2 aTextureCoord;
+    varying highp vec2 vTextureCoord;
+    void main(void) {
+        gl_Position = aVertexPosition;
+        vTextureCoord = aTextureCoord;
+    }
+`;
+
+// Fragment shader for 3D pyramid corner filter
+// Image is mapped onto 3 faces of a triangular pyramid
+// At h=0, pyramid is flat (apex on base) → identity transform
+const fsSource = `
+    precision highp float;
+    varying highp vec2 vTextureCoord;
+    uniform sampler2D uSampler;
+    uniform vec2 uResolution;
+    uniform float uBoxAngle;      // Camera yaw (horizontal rotation around pyramid)
+	    uniform float uPitch;         // Camera pitch (vertical angle)
+	    uniform float uRoll;          // Camera roll
+	    uniform float uElevation;     // Pyramid height h: h=0 → identity
+	    uniform float uFlipNormal;    // Invert pyramid direction
+	    uniform float uScale;         // View zoom
+	    uniform vec2 uApex;           // Apex position on the table (x, y)
+	    uniform vec2 uB0;             // Base triangle vertex 0 (x, y)
+	    uniform vec2 uB1;             // Base triangle vertex 1 (x, y)
+	    uniform vec2 uB2;             // Base triangle vertex 2 (x, y)
+
+    uniform float uShowGrid;      // Grid overlay toggle
+    uniform float uAspectRatio;   // Source image aspect ratio
+
+    const float PI = 3.14159265359;
+    const float SQRT3 = 1.732050808;
+    const float SQRT3_2 = 0.866025404;
+
+    /**
+     * Triangular Pyramid with Orbiting Camera
+     *
+     * Geometry (FIXED):
+     *   - Apex A at (0, 0, h)
+     *   - Base vertices at z=0: B0=(1,0,0), B1=(-0.5,√3/2,0), B2=(-0.5,-√3/2,0)
+     *
+     * Camera:
+     *   - Orbits around the pyramid
+     *   - Yaw: horizontal angle (0 = looking from -Z toward +Z)
+     *   - Pitch: vertical angle (0 = level, >0 = looking down)
+     *
+     * At h=0: All faces coplanar at z=0 → identity transform
+     */
+
+	    // Base vertices (table plane z=0)
+	    vec3 B0 = vec3(uB0, 0.0);
+	    vec3 B1 = vec3(uB1, 0.0);
+	    vec3 B2 = vec3(uB2, 0.0);
+
+    // Ray-triangle intersection using Möller–Trumbore algorithm
+    // Returns t (ray parameter) or -1 if no hit
+    float rayTriangleIntersect(vec3 orig, vec3 dir, vec3 v0, vec3 v1, vec3 v2) {
+        vec3 e1 = v1 - v0;
+        vec3 e2 = v2 - v0;
+        vec3 pvec = cross(dir, e2);
+        float det = dot(e1, pvec);
+
+        if (abs(det) < 0.0001) return -1.0;
+
+        float invDet = 1.0 / det;
+        vec3 tvec = orig - v0;
+        float u = dot(tvec, pvec) * invDet;
+        if (u < 0.0 || u > 1.0) return -1.0;
+
+        vec3 qvec = cross(tvec, e1);
+        float v = dot(dir, qvec) * invDet;
+        if (v < 0.0 || u + v > 1.0) return -1.0;
+
+        float t = dot(e2, qvec) * invDet;
+        return t > 0.0 ? t : -1.0;
+    }
+
+    // Project 3D point to screen coordinates
+    vec2 projectToScreen(vec3 p, vec3 camPos, vec3 camFwd, vec3 camRight, vec3 camUp, float fov) {
+        vec3 toPoint = p - camPos;
+        float depth = dot(toPoint, camFwd);
+        if (depth < 0.01) return vec2(-999.0);
+        vec2 screen;
+        screen.x = dot(toPoint, camRight) / (depth * fov);
+        screen.y = dot(toPoint, camUp) / (depth * fov);
+        return screen;
+    }
+
+	    // Distance from point to line segment in 2D
+	    float distToSegment(vec2 p, vec2 a, vec2 b) {
+	        vec2 ab = b - a;
+	        vec2 ap = p - a;
+	        float t = clamp(dot(ap, ab) / dot(ab, ab), 0.0, 1.0);
+	        vec2 closest = a + t * ab;
+	        return length(p - closest);
+	    }
+
+	    vec2 pointToUV(vec3 p, float canvasAspect) {
+	        vec2 imgCoord = p.xy;
+	        imgCoord.x /= canvasAspect;
+	        return imgCoord * 0.5 + 0.5;
+	    }
+
+	    bool uvInBounds(vec2 uv) {
+	        return all(greaterThanEqual(uv, vec2(0.0))) && all(lessThanEqual(uv, vec2(1.0)));
+	    }
+
+	    bool pointInTriangle2(vec2 p, vec2 a, vec2 b, vec2 c) {
+	        vec2 v0 = b - a;
+	        vec2 v1 = c - a;
+	        vec2 v2 = p - a;
+
+	        float d00 = dot(v0, v0);
+	        float d01 = dot(v0, v1);
+	        float d11 = dot(v1, v1);
+	        float d20 = dot(v2, v0);
+	        float d21 = dot(v2, v1);
+
+	        float denom = d00 * d11 - d01 * d01;
+	        if (abs(denom) < 1e-8) return false;
+
+	        float v = (d11 * d20 - d01 * d21) / denom;
+	        float w = (d00 * d21 - d01 * d20) / denom;
+	        float u = 1.0 - v - w;
+
+	        float eps = -1e-4;
+	        return (u >= eps) && (v >= eps) && (w >= eps);
+	    }
+
+	    void main(void) {
+        // Screen coordinates [-1, 1]
+        vec2 sc = (vTextureCoord - 0.5) * 2.0;
+
+	        // Aspect ratio correction
+	        float canvasAspect = uResolution.x / uResolution.y;
+	        sc.x *= canvasAspect;
+
+	        // Apply view scale
+	        sc /= uScale;
+
+	        // Pyramid geometry
+	        float h = uFlipNormal > 0.5 ? -uElevation : uElevation;
+	        vec3 A = vec3(uApex, h);  // Apex
+
+	        // Camera setup - orbits around pyramid
+	        float camDist = 3.0;
+        float yaw = uBoxAngle;    // Horizontal rotation
+        float pitch = uPitch;     // Vertical angle (0 = level, + = looking down)
+
+        // Camera position in spherical coordinates
+        // At yaw=0, pitch=0: camera at (0, 0, -camDist) looking toward origin
+        vec3 camPos = vec3(
+            camDist * cos(pitch) * sin(yaw),
+            camDist * sin(pitch),
+            -camDist * cos(pitch) * cos(yaw)
+        );
+
+        // Camera coordinate system (looking at origin)
+        vec3 camFwd = normalize(-camPos);
+        vec3 worldUp = vec3(0.0, 1.0, 0.0);
+
+        // Handle gimbal lock when looking straight up/down
+        vec3 camRight;
+        if (abs(pitch) > 1.5) {
+            camRight = vec3(cos(yaw), 0.0, sin(yaw));
+        } else {
+            camRight = normalize(cross(camFwd, worldUp));
+        }
+        vec3 camUp = cross(camRight, camFwd);
+
+        // Apply roll
+        float cr = cos(uRoll);
+        float sr = sin(uRoll);
+        vec3 camRight2 = camRight * cr - camUp * sr;
+        vec3 camUp2 = camRight * sr + camUp * cr;
+
+        // Field of view factor
+        float fov = 0.8;
+
+	        // Ray direction from camera through screen point
+	        vec3 rayDir = normalize(camFwd + sc.x * fov * camRight2 + sc.y * fov * camUp2);
+
+	        // Test intersection with table plane (z=0) and pyramid faces, find closest.
+	        float minT = 1e10;
+	        int hitFace = -1;
+	        vec3 hitPoint = vec3(0.0);
+	        vec2 hitUV = vec2(0.0);
+
+	        // Table plane (z = 0)
+	        if (abs(rayDir.z) > 0.0001) {
+	            float tPlane = (0.0 - camPos.z) / rayDir.z;
+	            if (tPlane > 0.0 && tPlane < minT) {
+	                vec3 pPlane = camPos + tPlane * rayDir;
+	                vec2 uvPlane = pointToUV(pPlane, canvasAspect);
+	                bool insideLiftedBase = (abs(h) > 0.001) && pointInTriangle2(pPlane.xy, B0.xy, B1.xy, B2.xy);
+	                if (uvInBounds(uvPlane) && !insideLiftedBase) {
+	                    minT = tPlane;
+	                    hitFace = 3; // table
+	                    hitPoint = pPlane;
+	                    hitUV = uvPlane;
+	                }
+	            }
+	        }
+
+	        // Face 0: A-B2-B0 (right face, contains +X direction)
+	        float t0 = rayTriangleIntersect(camPos, rayDir, A, B2, B0);
+	        if (t0 > 0.0 && t0 < minT) {
+	            vec3 p0 = camPos + t0 * rayDir;
+	            vec2 uv0 = pointToUV(p0, canvasAspect);
+	            if (uvInBounds(uv0)) {
+	                minT = t0;
+	                hitFace = 0;
+	                hitPoint = p0;
+	                hitUV = uv0;
+	            }
+	        }
+
+	        // Face 1: A-B0-B1 (upper-left face)
+	        float t1 = rayTriangleIntersect(camPos, rayDir, A, B0, B1);
+	        if (t1 > 0.0 && t1 < minT) {
+	            vec3 p1 = camPos + t1 * rayDir;
+	            vec2 uv1 = pointToUV(p1, canvasAspect);
+	            if (uvInBounds(uv1)) {
+	                minT = t1;
+	                hitFace = 1;
+	                hitPoint = p1;
+	                hitUV = uv1;
+	            }
+	        }
+
+	        // Face 2: A-B1-B2 (lower-left face)
+	        float t2 = rayTriangleIntersect(camPos, rayDir, A, B1, B2);
+	        if (t2 > 0.0 && t2 < minT) {
+	            vec3 p2 = camPos + t2 * rayDir;
+	            vec2 uv2 = pointToUV(p2, canvasAspect);
+	            if (uvInBounds(uv2)) {
+	                minT = t2;
+	                hitFace = 2;
+	                hitPoint = p2;
+	                hitUV = uv2;
+	            }
+	        }
+
+	        bool hasSample = hitFace >= 0;
+	        vec2 imgUV = hitUV;
+	        vec4 color = vec4(0.0);
+	        if (hasSample) {
+	            color = texture2D(uSampler, imgUV);
+	        }
+
+	        // Face shading
+	        if (hasSample && hitFace >= 0 && hitFace <= 2 && abs(h) > 0.01) {
+	            float shade = 1.0;
+	            if (hitFace == 0) shade = 1.0;
+	            else if (hitFace == 1) shade = 0.85;
+	            else shade = 0.70;
+	            color.rgb *= shade;
+	        }
+
+	        // Grid overlay: show the 3 pyramid edges in SCREEN SPACE
+	        if (uShowGrid > 0.5) {
+	            float lineWidth = 0.015;
+
+            // Project the 3 edges (A→B0, A→B1, A→B2) to screen space
+            vec2 screenA = projectToScreen(A, camPos, camFwd, camRight2, camUp2, fov);
+            vec2 screenB0 = projectToScreen(B0, camPos, camFwd, camRight2, camUp2, fov);
+            vec2 screenB1 = projectToScreen(B1, camPos, camFwd, camRight2, camUp2, fov);
+            vec2 screenB2 = projectToScreen(B2, camPos, camFwd, camRight2, camUp2, fov);
+
+            // Distance from current screen point to each projected edge
+            float dist0 = distToSegment(sc, screenA, screenB0);
+            float dist1 = distToSegment(sc, screenA, screenB1);
+            float dist2 = distToSegment(sc, screenA, screenB2);
+
+            float edgeDist = min(min(dist0, dist1), dist2);
+            float edgeLine = 1.0 - smoothstep(0.0, lineWidth, edgeDist);
+
+	            // Regular grid in texture space (only when we have a valid sample)
+	            float grid = 0.0;
+	            if (hasSample) {
+	                float gridSize = 10.0;
+	                vec2 gp = fract(imgUV * gridSize);
+	                float gridDist = min(min(gp.x, 1.0 - gp.x), min(gp.y, 1.0 - gp.y));
+	                grid = 1.0 - smoothstep(0.0, lineWidth * 0.5, gridDist);
+	            }
+
+	            vec3 gridColor = vec3(1.0, 0.8, 0.2);
+	            vec3 edgeColor = vec3(1.0, 0.3, 0.0);
+
+	            color.rgb = mix(color.rgb, gridColor, grid * 0.15);
+	            color.rgb = mix(color.rgb, edgeColor, edgeLine);
+
+	            // Base triangle edges (nails)
+	            float baseDist = min(
+	                min(distToSegment(sc, screenB0, screenB1), distToSegment(sc, screenB1, screenB2)),
+	                distToSegment(sc, screenB2, screenB0)
+	            );
+	            float baseLine = 1.0 - smoothstep(0.0, lineWidth, baseDist);
+	            color.rgb = mix(color.rgb, vec3(1.0, 0.7, 0.2), baseLine * 0.65);
+
+	            // Apex + nail dots
+	            float apexDot = 1.0 - smoothstep(0.0, lineWidth * 2.8, length(sc - screenA));
+	            float nail0 = 1.0 - smoothstep(0.0, lineWidth * 2.2, length(sc - screenB0));
+	            float nail1 = 1.0 - smoothstep(0.0, lineWidth * 2.2, length(sc - screenB1));
+	            float nail2 = 1.0 - smoothstep(0.0, lineWidth * 2.2, length(sc - screenB2));
+	            float nailDot = max(max(nail0, nail1), nail2);
+	            color.rgb = mix(color.rgb, vec3(1.0, 0.35, 0.0), apexDot);
+	            color.rgb = mix(color.rgb, vec3(1.0, 0.65, 0.15), nailDot);
+
+	            float overlayAlpha = max(max(edgeLine, baseLine), max(apexDot, nailDot));
+	            color.a = max(color.a, overlayAlpha);
+	        }
+
+	        gl_FragColor = color;
+	    }
+`;
+
+class WebGLRenderer {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.gl = canvas.getContext('webgl2', { antialias: true, preserveDrawingBuffer: true, alpha: true });
+        this.isWebGL2 = !!this.gl;
+
+        if (!this.gl) {
+            console.warn('WebGL 2 not supported, falling back to WebGL 1.');
+            this.gl = canvas.getContext('webgl', { antialias: true, preserveDrawingBuffer: true, alpha: true });
+        }
+
+        if (!this.gl) throw new Error('WebGL not supported');
+        this.resizeViewport();
+        this.initShaderProgram();
+        this.initBuffers();
+        this.texture = null;
+        this.imageAspect = 1.0;
+    }
+
+    resizeViewport() {
+        const container = this.canvas.parentElement;
+        const dpr = window.devicePixelRatio || 1;
+        const displayWidth = Math.floor(container.clientWidth * dpr);
+        const displayHeight = Math.floor(container.clientHeight * dpr);
+
+        if (this.canvas.width !== displayWidth || this.canvas.height !== displayHeight) {
+            this.canvas.width = displayWidth;
+            this.canvas.height = displayHeight;
+            this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+        }
+    }
+
+    compileShader(type, source) {
+        const shader = this.gl.createShader(type);
+        this.gl.shaderSource(shader, source);
+        this.gl.compileShader(shader);
+        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+            console.error(this.gl.getShaderInfoLog(shader));
+            return null;
+        }
+        return shader;
+    }
+
+    initShaderProgram() {
+        const vs = this.compileShader(this.gl.VERTEX_SHADER, vsSource);
+        const fs = this.compileShader(this.gl.FRAGMENT_SHADER, fsSource);
+        const program = this.gl.createProgram();
+        this.gl.attachShader(program, vs);
+        this.gl.attachShader(program, fs);
+        this.gl.linkProgram(program);
+        this.program = program;
+        this.locations = {
+            attrib: {
+                pos: this.gl.getAttribLocation(program, 'aVertexPosition'),
+                uv: this.gl.getAttribLocation(program, 'aTextureCoord')
+            },
+	            uniform: {
+	                resolution: this.gl.getUniformLocation(program, 'uResolution'),
+	                boxAngle: this.gl.getUniformLocation(program, 'uBoxAngle'),
+	                pitch: this.gl.getUniformLocation(program, 'uPitch'),
+	                roll: this.gl.getUniformLocation(program, 'uRoll'),
+	                elevation: this.gl.getUniformLocation(program, 'uElevation'),
+	                apex: this.gl.getUniformLocation(program, 'uApex'),
+	                b0: this.gl.getUniformLocation(program, 'uB0'),
+	                b1: this.gl.getUniformLocation(program, 'uB1'),
+	                b2: this.gl.getUniformLocation(program, 'uB2'),
+	                flipNormal: this.gl.getUniformLocation(program, 'uFlipNormal'),
+	                scale: this.gl.getUniformLocation(program, 'uScale'),
+	                showGrid: this.gl.getUniformLocation(program, 'uShowGrid'),
+	                aspectRatio: this.gl.getUniformLocation(program, 'uAspectRatio'),
+	                sampler: this.gl.getUniformLocation(program, 'uSampler')
+	            }
+	        };
+    }
+
+    initBuffers() {
+        const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+        this.posBuf = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.posBuf);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+
+        const uvs = new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]);
+        this.uvBuf = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.uvBuf);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, uvs, this.gl.STATIC_DRAW);
+    }
+
+    loadTexture(img) {
+        if (this.texture) this.gl.deleteTexture(this.texture);
+        this.texture = this.gl.createTexture();
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+
+        this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img);
+
+        this.imageAspect = img.width / img.height;
+    }
+
+    render(params) {
+        this.resizeViewport();
+        this.gl.clearColor(0, 0, 0, 0);
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+        this.gl.useProgram(this.program);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.posBuf);
+        this.gl.vertexAttribPointer(this.locations.attrib.pos, 2, this.gl.FLOAT, false, 0, 0);
+        this.gl.enableVertexAttribArray(this.locations.attrib.pos);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.uvBuf);
+        this.gl.vertexAttribPointer(this.locations.attrib.uv, 2, this.gl.FLOAT, false, 0, 0);
+        this.gl.enableVertexAttribArray(this.locations.attrib.uv);
+
+        this.gl.uniform2f(this.locations.uniform.resolution, this.canvas.width, this.canvas.height);
+        this.gl.uniform1f(this.locations.uniform.boxAngle, params.boxAngle);
+        this.gl.uniform1f(this.locations.uniform.pitch, params.pitch);
+	        this.gl.uniform1f(this.locations.uniform.roll, params.roll);
+	        this.gl.uniform1f(this.locations.uniform.elevation, params.elevation);
+	        this.gl.uniform2f(this.locations.uniform.apex, params.apexX, params.apexY);
+	        this.gl.uniform2f(this.locations.uniform.b0, params.b0x, params.b0y);
+	        this.gl.uniform2f(this.locations.uniform.b1, params.b1x, params.b1y);
+	        this.gl.uniform2f(this.locations.uniform.b2, params.b2x, params.b2y);
+	        this.gl.uniform1f(this.locations.uniform.flipNormal, params.flipNormal ? 1.0 : 0.0);
+	        this.gl.uniform1f(this.locations.uniform.scale, params.scale);
+	        this.gl.uniform1f(this.locations.uniform.showGrid, params.showGrid ? 1.0 : 0.0);
+	        this.gl.uniform1f(this.locations.uniform.aspectRatio, this.imageAspect);
+
+        if (this.texture) {
+            this.gl.activeTexture(this.gl.TEXTURE0);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+            this.gl.uniform1i(this.locations.uniform.sampler, 0);
+        }
+        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+    }
+}
+
+/**
+ * UI & Interaction Logic
+ */
+class AxisVisualizer {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        if (!this.container) return;
+        
+        this.width = this.container.clientWidth || 80;
+        this.height = this.container.clientHeight || 80;
+        
+        this.canvas = document.createElement('canvas');
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+        this.container.appendChild(this.canvas);
+        this.ctx = this.canvas.getContext('2d');
+    }
+    
+    update(yaw, pitch, roll) {
+        if (!this.ctx) return;
+        const ctx = this.ctx;
+        const w = this.width;
+        const h = this.height;
+        const cx = w / 2;
+        const cy = h / 2;
+        const len = Math.min(w, h) * 0.35;
+        
+        ctx.clearRect(0, 0, w, h);
+        
+        // Transform vector v by rotations
+        const transform = (v) => {
+             // 1. Yaw (Y)
+             let x = v.x * Math.cos(yaw) - v.z * Math.sin(yaw);
+             let z = v.x * Math.sin(yaw) + v.z * Math.cos(yaw);
+             let y = v.y;
+             
+             // 2. Pitch (X)
+             let y2 = y * Math.cos(pitch) - z * Math.sin(pitch);
+             let z2 = y * Math.sin(pitch) + z * Math.cos(pitch);
+             let x2 = x;
+             
+             // 3. Roll (Z)
+             let x3 = x2 * Math.cos(roll) - y2 * Math.sin(roll);
+             let y3 = x2 * Math.sin(roll) + y2 * Math.cos(roll);
+             let z3 = z2;
+             
+             return {x: x3, y: y3, z: z3};
+        };
+        
+        const axes = [
+            { v: {x: 1, y: 0, z: 0}, color: '#ff5500', label: 'X' }, // Red/Orange
+            { v: {x: 0, y: 1, z: 0}, color: '#00ff00', label: 'Y' }, // Green
+            { v: {x: 0, y: 0, z: 1}, color: '#0088ff', label: 'Z' }  // Blue
+        ];
+        
+        // Project and sort
+        const projected = axes.map(axis => {
+            const p = transform(axis.v);
+            return { ...axis, p };
+        }).sort((a, b) => a.p.z - b.p.z); // Draw back to front
+        
+        // Draw Center
+        ctx.beginPath();
+        ctx.arc(cx, cy, 2, 0, Math.PI*2);
+        ctx.fillStyle = '#666';
+        ctx.fill();
+
+        projected.forEach(axis => {
+            const p = axis.p;
+            // Y is up in 3D, down in canvas
+            const px = cx + p.x * len;
+            const py = cy - p.y * len;
+            
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(px, py);
+            ctx.strokeStyle = axis.color;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            
+            // Label
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 10px monospace';
+            ctx.fillText(axis.label, px + (p.x * 8), py - (p.y * 8));
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('outputCanvas');
+    let renderer;
+    try {
+        renderer = new WebGLRenderer(canvas);
+    } catch (e) {
+        alert("WebGL Initialize Failed: " + e.message);
+        return;
+    }
+    
+    const axisViz = new AxisVisualizer('axisDisplay');
+    let diagramPanZoom = null;
+
+    async function initMermaidDocs() {
+        const el = document.getElementById('pyramidPipelineDiagram');
+        if (!el) return;
+        if (!window.mermaid) {
+            console.warn('Mermaid not loaded; docs diagram disabled.');
+            return;
+        }
+
+        const src = (el.textContent || '').trim();
+        if (!src) return;
+
+        try {
+            window.mermaid.initialize({
+                startOnLoad: false,
+                theme: 'dark',
+                securityLevel: 'strict',
+                themeVariables: {
+                    background: 'transparent',
+                    primaryColor: '#1a1612',
+                    primaryTextColor: '#e0dcd8',
+                    primaryBorderColor: '#332e28',
+                    lineColor: '#ff9d00',
+                    fontFamily: 'JetBrains Mono, monospace'
+                }
+            });
+
+            const id = `pyramid-docs-${Math.random().toString(36).slice(2)}`;
+            const rendered = await window.mermaid.render(id, src);
+            el.innerHTML = rendered.svg;
+            if (typeof rendered.bindFunctions === 'function') rendered.bindFunctions(el);
+
+            const svg = el.querySelector('svg');
+            if (!svg) return;
+
+            if (!window.svgPanZoom) {
+                console.warn('svg-pan-zoom not loaded; docs diagram pan/zoom disabled.');
+                return;
+            }
+
+            if (diagramPanZoom) {
+                diagramPanZoom.destroy();
+                diagramPanZoom = null;
+            }
+
+            diagramPanZoom = window.svgPanZoom(svg, {
+                zoomEnabled: true,
+                panEnabled: true,
+                fit: true,
+                center: true,
+                minZoom: 0.4,
+                maxZoom: 20,
+                zoomScaleSensitivity: 0.25,
+                preventMouseEventsDefault: true
+            });
+        } catch (err) {
+            console.error('Failed to render Mermaid docs diagram:', err);
+        }
+    }
+
+	    // UI Elements
+	    const inputs = {
+	        img: document.getElementById('imageUpload'),
+	        boxAngle: document.getElementById('boxAngleInput'),
+	        pitch: document.getElementById('pitchInput'),
+	        roll: document.getElementById('cameraRollInput'),
+	        elevation: document.getElementById('elevationInput'),
+	        flipNormal: document.getElementById('flipNormalInput'),
+	        scale: document.getElementById('scaleInput'),
+	        apexX: document.getElementById('offsetXInput'),
+	        apexY: document.getElementById('offsetYInput'),
+	        pyrSpin: document.getElementById('pyrSpinInput'),
+	        showGrid: document.getElementById('showGrid')
+	    };
+
+	    const labels = {
+	        boxAngle: document.getElementById('boxAngleVal'),
+	        pitch: document.getElementById('pitchVal'),
+	        roll: document.getElementById('cameraRollVal'),
+	        elevation: document.getElementById('elevationVal'),
+	        scale: document.getElementById('scaleVal'),
+	        apexX: document.getElementById('offsetXVal'),
+	        apexY: document.getElementById('offsetYVal'),
+	        pyrSpin: document.getElementById('pyrSpinVal')
+	    };
+
+    let sourceImage = null;
+    let isImageLoaded = false;
+    let rafId = null;
+
+	    // --- Presets ---
+	    // Note: boxAngle and pitch are in degrees, converted to radians at render time
+	    const presets = {
+	        snack: { boxAngle: 0, pitch: 0, roll: 0, elevation: 0.5, flipNormal: false, scale: 1.0, apexX: 0, apexY: 0, pyrSpin: 0 }
+	    };
+
+	    function loadPreset(presetName) {
+	        const preset = presets[presetName];
+	        if (!preset) return;
+
+	        resetBaseTriangle();
+
+	        inputs.boxAngle.value = preset.boxAngle;
+	        inputs.pitch.value = preset.pitch;
+		        inputs.roll.value = preset.roll;
+	        inputs.elevation.value = preset.elevation;
+	        inputs.flipNormal.checked = preset.flipNormal;
+	        inputs.scale.value = preset.scale;
+	        inputs.apexX.value = preset.apexX;
+	        inputs.apexY.value = preset.apexY;
+	        inputs.pyrSpin.value = preset.pyrSpin;
+
+	        updateLabels();
+	        scheduleRender();
+	    }
+
+    document.querySelectorAll('.preset-card').forEach(btn => {
+        btn.addEventListener('click', () => {
+            loadPreset(btn.dataset.preset);
+        });
+    });
+
+    // --- Adjust Buttons (+/-) ---
+    document.querySelectorAll('.slider-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const inputId = btn.dataset.input;
+            const adjustVal = parseFloat(btn.dataset.adjust);
+            const input = document.getElementById(inputId);
+            if(!input) return;
+
+            let newVal = parseFloat(input.value) + adjustVal;
+
+            if (input.min) newVal = Math.max(parseFloat(input.min), newVal);
+            if (input.max) newVal = Math.min(parseFloat(input.max), newVal);
+
+            if (input.step.includes('.')) {
+                newVal = parseFloat(newVal.toFixed(2));
+            }
+
+            input.value = newVal;
+            input.dispatchEvent(new Event('input'));
+        });
+    });
+
+    // --- Rendering Loop ---
+		    function updateLabels() {
+		        labels.boxAngle.textContent = inputs.boxAngle.value + '°';
+		        labels.pitch.textContent = inputs.pitch.value + '°';
+		        labels.roll.textContent = inputs.roll.value + '°';
+		        labels.elevation.textContent = parseFloat(inputs.elevation.value).toFixed(2);
+		        labels.scale.textContent = parseFloat(inputs.scale.value).toFixed(2);
+		        labels.apexX.textContent = parseFloat(inputs.apexX.value).toFixed(2);
+		        labels.apexY.textContent = parseFloat(inputs.apexY.value).toFixed(2);
+		        labels.pyrSpin.textContent = Math.round(parseFloat(inputs.pyrSpin.value) || 0) + '°';
+		    }
+
+    function render() {
+        const yawRad = parseFloat(inputs.boxAngle.value) * Math.PI / 180;
+        const pitchRad = parseFloat(inputs.pitch.value) * Math.PI / 180;
+        const rollRad = parseFloat(inputs.roll.value) * Math.PI / 180;
+        
+		        const params = {
+		            boxAngle: yawRad,
+		            pitch: pitchRad,
+		            roll: rollRad,
+		            elevation: parseFloat(inputs.elevation.value),
+		            flipNormal: inputs.flipNormal.checked,
+		            scale: parseFloat(inputs.scale.value),
+		            apexX: parseFloat(inputs.apexX.value),
+		            apexY: parseFloat(inputs.apexY.value),
+		            b0x: base[0].x,
+		            b0y: base[0].y,
+		            b1x: base[1].x,
+		            b1y: base[1].y,
+		            b2x: base[2].x,
+		            b2y: base[2].y,
+		            showGrid: inputs.showGrid.checked
+		        };
+	        renderer.render(params);
+	        axisViz.update(yawRad, pitchRad, rollRad);
+	    }
+
+		    // --- Geometry (editable) ---
+		    const SQRT3_2 = 0.866025404;
+		    const CAM_DIST = 3.0;
+		    const FOV = 0.8;
+
+		    // Base triangle (z=0). These 3 vertices are draggable.
+		    const base = [
+		        { x: 1.0, y: 0.0 },
+		        { x: -0.5, y: SQRT3_2 },
+		        { x: -0.5, y: -SQRT3_2 }
+		    ];
+
+		    const baseDefault = [
+		        { x: 1.0, y: 0.0 },
+		        { x: -0.5, y: SQRT3_2 },
+		        { x: -0.5, y: -SQRT3_2 }
+		    ];
+
+		    let lastPyrSpinDeg = parseFloat(inputs.pyrSpin.value) || 0;
+
+		    function scheduleRender() {
+		        // Apply pyramid spin delta by rotating base vertices around the vertical axis through the apex.
+		        const spinDeg = parseFloat(inputs.pyrSpin.value);
+		        if (Number.isFinite(spinDeg)) {
+		            const deltaDeg = spinDeg - lastPyrSpinDeg;
+		            if (Math.abs(deltaDeg) > 1e-6) {
+		                const pivot = {
+		                    x: parseFloat(inputs.apexX.value) || 0,
+		                    y: parseFloat(inputs.apexY.value) || 0
+		                };
+		                rotateBaseVertices(pivot, (deltaDeg * Math.PI) / 180);
+		                lastPyrSpinDeg = spinDeg;
+		            }
+		        }
+
+		        // Keep apex projection inside the current base triangle.
+		        const rawApexX = parseFloat(inputs.apexX.value);
+		        const rawApexY = parseFloat(inputs.apexY.value);
+		        if (Number.isFinite(rawApexX) && Number.isFinite(rawApexY)) {
+		            const clampedApex = clampPointToTriangle2({ x: rawApexX, y: rawApexY }, base[0], base[1], base[2]);
+		            inputs.apexX.value = clampedApex.x.toFixed(2);
+		            inputs.apexY.value = clampedApex.y.toFixed(2);
+		        }
+
+		        updateLabels();
+		        if (rafId) cancelAnimationFrame(rafId);
+		        rafId = requestAnimationFrame(render);
+		    }
+
+		    // --- Math helpers (2D/3D) ---
+		    function clamp(v, min, max) {
+		        return Math.max(min, Math.min(max, v));
+		    }
+
+		    function rotate2D(p, pivot, angleRad) {
+		        const c = Math.cos(angleRad);
+		        const s = Math.sin(angleRad);
+		        const dx = p.x - pivot.x;
+		        const dy = p.y - pivot.y;
+		        return {
+		            x: pivot.x + dx * c - dy * s,
+		            y: pivot.y + dx * s + dy * c
+		        };
+		    }
+
+		    function rotateBaseVertices(pivot, deltaRad) {
+		        for (let i = 0; i < 3; i++) {
+		            base[i] = rotate2D(base[i], pivot, deltaRad);
+		        }
+		    }
+
+		    function normalize3(v) {
+		        const len = Math.hypot(v.x, v.y, v.z) || 1;
+		        return { x: v.x / len, y: v.y / len, z: v.z / len };
+		    }
+
+		    function dot3(a, b) {
+		        return a.x * b.x + a.y * b.y + a.z * b.z;
+		    }
+
+		    function cross3(a, b) {
+		        return {
+		            x: a.y * b.z - a.z * b.y,
+		            y: a.z * b.x - a.x * b.z,
+		            z: a.x * b.y - a.y * b.x
+		        };
+		    }
+
+		    function closestPointOnSegment2(p, a, b) {
+		        const abx = b.x - a.x;
+		        const aby = b.y - a.y;
+		        const apx = p.x - a.x;
+		        const apy = p.y - a.y;
+		        const denom = abx * abx + aby * aby || 1;
+		        const t = clamp((apx * abx + apy * aby) / denom, 0, 1);
+		        return { x: a.x + abx * t, y: a.y + aby * t };
+		    }
+
+		    function barycentric2(p, a, b, c) {
+		        const v0x = b.x - a.x;
+		        const v0y = b.y - a.y;
+		        const v1x = c.x - a.x;
+		        const v1y = c.y - a.y;
+		        const v2x = p.x - a.x;
+		        const v2y = p.y - a.y;
+
+		        const d00 = v0x * v0x + v0y * v0y;
+		        const d01 = v0x * v1x + v0y * v1y;
+		        const d11 = v1x * v1x + v1y * v1y;
+		        const d20 = v2x * v0x + v2y * v0y;
+		        const d21 = v2x * v1x + v2y * v1y;
+		        const denom = d00 * d11 - d01 * d01;
+		        if (Math.abs(denom) < 1e-10) return null;
+
+		        const v = (d11 * d20 - d01 * d21) / denom;
+		        const w = (d00 * d21 - d01 * d20) / denom;
+		        const u = 1 - v - w;
+		        return { u, v, w };
+		    }
+
+		    function clampPointToTriangle2(p, a, b, c) {
+		        const bary = barycentric2(p, a, b, c);
+		        if (bary && bary.u >= 0 && bary.v >= 0 && bary.w >= 0) return p;
+
+		        const q0 = closestPointOnSegment2(p, a, b);
+		        const q1 = closestPointOnSegment2(p, b, c);
+		        const q2 = closestPointOnSegment2(p, c, a);
+		        const d0 = (p.x - q0.x) ** 2 + (p.y - q0.y) ** 2;
+		        const d1 = (p.x - q1.x) ** 2 + (p.y - q1.y) ** 2;
+		        const d2 = (p.x - q2.x) ** 2 + (p.y - q2.y) ** 2;
+		        if (d0 <= d1 && d0 <= d2) return q0;
+		        if (d1 <= d2) return q1;
+		        return q2;
+		    }
+
+		    function getPointerSc(clientX, clientY) {
+		        const rect = canvas.getBoundingClientRect();
+		        const u = (clientX - rect.left) / rect.width;
+		        const v = 1 - (clientY - rect.top) / rect.height;
+		        if (!Number.isFinite(u) || !Number.isFinite(v)) return null;
+
+		        const canvasAspect = canvas.width / canvas.height;
+		        let scX = (u - 0.5) * 2;
+		        let scY = (v - 0.5) * 2;
+		        scX *= canvasAspect;
+
+		        const viewScale = parseFloat(inputs.scale.value) || 1;
+		        scX /= viewScale;
+		        scY /= viewScale;
+		        return { x: scX, y: scY };
+		    }
+
+		    function getCameraBasis() {
+		        const yaw = parseFloat(inputs.boxAngle.value) * Math.PI / 180;
+		        const pitch = parseFloat(inputs.pitch.value) * Math.PI / 180;
+		        const roll = parseFloat(inputs.roll.value) * Math.PI / 180;
+
+		        const camPos = {
+		            x: CAM_DIST * Math.cos(pitch) * Math.sin(yaw),
+		            y: CAM_DIST * Math.sin(pitch),
+		            z: -CAM_DIST * Math.cos(pitch) * Math.cos(yaw)
+		        };
+
+		        const camFwd = normalize3({ x: -camPos.x, y: -camPos.y, z: -camPos.z });
+		        const worldUp = { x: 0, y: 1, z: 0 };
+
+		        let camRight;
+		        if (Math.abs(pitch) > 1.5) {
+		            camRight = { x: Math.cos(yaw), y: 0, z: Math.sin(yaw) };
+		        } else {
+		            camRight = normalize3(cross3(camFwd, worldUp));
+		        }
+		        const camUp = cross3(camRight, camFwd);
+
+		        const cr = Math.cos(roll);
+		        const sr = Math.sin(roll);
+		        const camRight2 = {
+		            x: camRight.x * cr - camUp.x * sr,
+		            y: camRight.y * cr - camUp.y * sr,
+		            z: camRight.z * cr - camUp.z * sr
+		        };
+		        const camUp2 = {
+		            x: camRight.x * sr + camUp.x * cr,
+		            y: camRight.y * sr + camUp.y * cr,
+		            z: camRight.z * sr + camUp.z * cr
+		        };
+
+		        return { camPos, camFwd, camRight2, camUp2 };
+		    }
+
+		    function projectToScreen(p, cam) {
+		        const toPoint = { x: p.x - cam.camPos.x, y: p.y - cam.camPos.y, z: p.z - cam.camPos.z };
+		        const depth = dot3(toPoint, cam.camFwd);
+		        if (depth < 0.01) return null;
+		        return {
+		            x: dot3(toPoint, cam.camRight2) / (depth * FOV),
+		            y: dot3(toPoint, cam.camUp2) / (depth * FOV)
+		        };
+		    }
+
+		    function pointerToWorldOnZPlane(clientX, clientY, planeZ) {
+		        const sc = getPointerSc(clientX, clientY);
+		        if (!sc) return null;
+		        const cam = getCameraBasis();
+		        const rayDir = normalize3({
+		            x: cam.camFwd.x + sc.x * FOV * cam.camRight2.x + sc.y * FOV * cam.camUp2.x,
+		            y: cam.camFwd.y + sc.x * FOV * cam.camRight2.y + sc.y * FOV * cam.camUp2.y,
+		            z: cam.camFwd.z + sc.x * FOV * cam.camRight2.z + sc.y * FOV * cam.camUp2.z
+		        });
+		        if (Math.abs(rayDir.z) < 1e-8) return null;
+		        const t = (planeZ - cam.camPos.z) / rayDir.z;
+		        if (t <= 0) return null;
+		        return { x: cam.camPos.x + rayDir.x * t, y: cam.camPos.y + rayDir.y * t };
+		    }
+
+		    function pickVertex(clientX, clientY) {
+		        const sc = getPointerSc(clientX, clientY);
+		        if (!sc) return null;
+		        const cam = getCameraBasis();
+
+		        const elev = parseFloat(inputs.elevation.value) || 0;
+		        const h = inputs.flipNormal.checked ? -elev : elev;
+		        const apex = {
+		            x: parseFloat(inputs.apexX.value) || 0,
+		            y: parseFloat(inputs.apexY.value) || 0,
+		            z: h
+		        };
+
+		        const candidates = [
+		            { mode: 'base', index: 0, p: { x: base[0].x, y: base[0].y, z: 0 } },
+		            { mode: 'base', index: 1, p: { x: base[1].x, y: base[1].y, z: 0 } },
+		            { mode: 'base', index: 2, p: { x: base[2].x, y: base[2].y, z: 0 } },
+		            { mode: 'apex', index: -1, p: apex }
+		        ];
+
+		        let best = null;
+		        let bestD = Infinity;
+		        for (const c of candidates) {
+		            const sp = projectToScreen(c.p, cam);
+		            if (!sp) continue;
+		            const dx = sc.x - sp.x;
+		            const dy = sc.y - sp.y;
+		            const d = Math.hypot(dx, dy);
+		            if (d < bestD) {
+		                bestD = d;
+		                best = c;
+		            }
+		        }
+
+		        const pickRadius = 0.075;
+		        if (!best || bestD > pickRadius) return null;
+		        return best;
+		    }
+
+		    // --- Interaction ---
+		    const drag = { active: false, pointerId: null, mode: 'none', baseIndex: -1 };
+
+		    canvas.addEventListener('pointerdown', (e) => {
+		        const picked = pickVertex(e.clientX, e.clientY);
+		        if (!picked) return;
+		        drag.active = true;
+		        drag.pointerId = e.pointerId;
+		        drag.mode = picked.mode;
+		        drag.baseIndex = picked.index;
+		        canvas.setPointerCapture(e.pointerId);
+		    });
+
+		    canvas.addEventListener('pointermove', (e) => {
+		        if (!drag.active || drag.pointerId !== e.pointerId) return;
+
+		        if (drag.mode === 'apex') {
+		            const elev = parseFloat(inputs.elevation.value) || 0;
+		            const h = inputs.flipNormal.checked ? -elev : elev;
+		            const worldPoint = pointerToWorldOnZPlane(e.clientX, e.clientY, h);
+		            if (!worldPoint) return;
+		            const clamped = clampPointToTriangle2(worldPoint, base[0], base[1], base[2]);
+		            inputs.apexX.value = clamped.x.toFixed(2);
+		            inputs.apexY.value = clamped.y.toFixed(2);
+		            scheduleRender();
+		            return;
+		        }
+
+		        if (drag.mode === 'base') {
+		            const worldPoint = pointerToWorldOnZPlane(e.clientX, e.clientY, 0);
+		            if (!worldPoint) return;
+		            base[drag.baseIndex] = { x: worldPoint.x, y: worldPoint.y };
+		            scheduleRender();
+		            return;
+		        }
+
+		        // Rotation uses the PYRAMID SPIN slider (no drag on empty space).
+		    });
+
+		    function endDrag(e) {
+		        if (drag.pointerId !== e.pointerId) return;
+		        drag.active = false;
+		        drag.pointerId = null;
+		        drag.mode = 'none';
+		        drag.baseIndex = -1;
+		    }
+
+		    canvas.addEventListener('pointerup', endDrag);
+		    canvas.addEventListener('pointercancel', endDrag);
+
+		    // Reset base triangle when loading a preset.
+		    function resetBaseTriangle() {
+		        for (let i = 0; i < 3; i++) {
+		            base[i] = { x: baseDefault[i].x, y: baseDefault[i].y };
+		        }
+		        inputs.pyrSpin.value = '0';
+		        lastPyrSpinDeg = 0;
+		    }
+
+		    // Bind Inputs
+		    Object.values(inputs).forEach(el => {
+		        if (el && (el.type === 'range' || el.type === 'checkbox')) {
+	            el.addEventListener('input', scheduleRender);
+        }
+    });
+
+    // Image Upload
+    inputs.img.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        sourceImage = new Image();
+        sourceImage.onload = () => {
+            isImageLoaded = true;
+            renderer.loadTexture(sourceImage);
+            scheduleRender();
+            URL.revokeObjectURL(url);
+        };
+        sourceImage.src = url;
+    });
+
+    // Download
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+        if (!isImageLoaded) {
+            alert("Please load an image first.");
+            return;
+        }
+
+        const wasGridEnabled = inputs.showGrid.checked;
+        inputs.showGrid.checked = false;
+        render();
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const hash = Math.random().toString(36).substring(2, 8);
+                const size = `${canvas.width}x${canvas.height}`;
+
+                const link = document.createElement('a');
+                link.download = `box-corner-${hash}-${size}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                inputs.showGrid.checked = wasGridEnabled;
+                render();
+            });
+        });
+    });
+
+    // Handle Window Resize
+    window.addEventListener('resize', () => {
+        scheduleRender();
+        if (diagramPanZoom) {
+            diagramPanZoom.resize();
+            diagramPanZoom.fit();
+            diagramPanZoom.center();
+        }
+    });
+
+    // Initial render
+    initMermaidDocs();
+    scheduleRender();
+});
+</script>
+</body>
+</html>
