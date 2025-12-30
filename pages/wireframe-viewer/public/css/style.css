@@ -1,0 +1,140 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #000;
+  color: #00ff00;
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+#render-canvas {
+  background: #000;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Drop Zone */
+.drop-zone {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.drop-zone:hover {
+  background: rgba(0, 20, 0, 0.9);
+}
+
+.drop-zone.hidden {
+  display: none;
+}
+
+.drop-zone.drag-over {
+  background: rgba(0, 40, 0, 0.95);
+}
+
+.drop-zone-content {
+  text-align: center;
+}
+
+.drop-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.drop-text {
+  font-size: 24px;
+  margin-bottom: 10px;
+  letter-spacing: 2px;
+}
+
+.drop-hint {
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+/* Loading */
+.loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.loading.hidden {
+  display: none;
+}
+
+.loading-text {
+  font-size: 20px;
+  letter-spacing: 4px;
+  animation: blink 0.5s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Axis Labels */
+#axis-labels {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  width: 100px;
+  height: 100px;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+#axis-labels.hidden {
+  display: none;
+}
+
+.axis-label {
+  position: absolute;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+  text-shadow: 0 0 6px currentColor, 0 0 2px currentColor;
+}
+
+#axis-x { left: 80px; bottom: 45px; }
+#axis-y { left: 45px; bottom: 80px; }
+#axis-z { left: 45px; bottom: 45px; }
+
+/* lil-gui overrides for CRT aesthetic */
+:root {
+  --lil-gui-name-width: 45%;
+  --lil-gui-widget-height: 22px;
+  --lil-gui-title-height: 28px;
+  --lil-gui-font-size: 11px;
+  --lil-gui-font-family: 'Courier New', monospace;
+}

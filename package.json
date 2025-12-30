@@ -11,6 +11,7 @@
     "dev:emoji": "cd pages/emoji-splitter && wrangler pages dev public",
     "dev:solar": "cd pages/solar && wrangler pages dev public",
     "dev:pyramid": "cd pages/pyramid-filter && wrangler pages dev public",
+    "dev:wireframe": "cd pages/wireframe-viewer && wrangler pages dev",
     "deploy:exif": "cd pages/exif-remover && wrangler pages deploy public",
     "deploy:flowdown": "cd pages/flowdown-config && wrangler pages deploy public",
     "deploy:hdr": "cd pages/hdr-tool && wrangler pages deploy public",
@@ -18,7 +19,8 @@
     "deploy:emoji": "cd pages/emoji-splitter && wrangler pages deploy public",
     "deploy:solar": "cd pages/solar && wrangler pages deploy public",
     "deploy:pyramid": "cd pages/pyramid-filter && wrangler pages deploy public",
-    "deploy:all": "pnpm run deploy:exif && pnpm run deploy:flowdown && pnpm run deploy:hdr && pnpm run deploy:daoli && pnpm run deploy:emoji && pnpm run deploy:solar && pnpm run deploy:pyramid"
+    "deploy:wireframe": "cd pages/wireframe-viewer && wrangler pages deploy",
+    "deploy:all": "pnpm run deploy:exif && pnpm run deploy:flowdown && pnpm run deploy:hdr && pnpm run deploy:daoli && pnpm run deploy:emoji && pnpm run deploy:solar && pnpm run deploy:pyramid && pnpm run deploy:wireframe"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

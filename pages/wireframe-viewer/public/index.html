@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tektronix Wireframe Viewer</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <canvas id="render-canvas"></canvas>
+
+    <div id="axis-labels" class="hidden">
+      <span id="axis-x" class="axis-label" style="color: #ff0000;">X</span>
+      <span id="axis-y" class="axis-label" style="color: #00ff00;">Y</span>
+      <span id="axis-z" class="axis-label" style="color: #00aaff;">Z</span>
+    </div>
+
+    <div id="drop-zone" class="drop-zone">
+      <div class="drop-zone-content">
+        <div class="drop-icon">⬡</div>
+        <p class="drop-text">Drop glTF/GLB files here</p>
+        <p class="drop-hint">支持 .glb 或 .gltf + .bin</p>
+        <input type="file" id="file-input" accept=".gltf,.glb,.bin" multiple hidden>
+      </div>
+    </div>
+
+    <div id="loading" class="loading hidden">
+      <div class="loading-text">LOADING...</div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
