@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gemini Watermark Remover</title>
+    <link rel="icon" type="image/png" href="./bg_48.png">
+    <link rel="apple-touch-icon" href="./bg_96.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --void: #08080a;
+        --cosmos: #0d0d12;
+        --nebula: #14141c;
+        --stardust: #1e1e2a;
+        --lunar: #f0ebe3;
+        --lunar-dim: #c8c4bc;
+        --astral: #8b85ff;
+        --astral-glow: rgba(139, 133, 255, 0.4);
+        --nova: #ff6b9d;
+        --nova-glow: rgba(255, 107, 157, 0.3);
+        --aurora: #4ecdc4;
+        --aurora-glow: rgba(78, 205, 196, 0.3);
+        --twilight: #3a3a4a;
+        --dusk: #5a5a6a;
+
+        --font-serif: 'Instrument Serif', Georgia, serif;
+        --font-mono: 'Geist Mono', 'SF Mono', monospace;
+
+        --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+        --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(-8px) rotate(2deg); }
+      }
+
+      @keyframes pulse-glow {
+        0%, 100% { opacity: 0.4; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(1.05); }
+      }
+
+      @keyframes shimmer {
+        0% { background-position: -200% center; }
+        100% { background-position: 200% center; }
+      }
+
+      @keyframes reveal {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes star-rotate {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html {
+        font-size: 16px;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      body {
+        font-family: var(--font-mono);
+        background: var(--void);
+        color: var(--lunar);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      /* Cosmic background gradient */
+      .cosmic-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        background:
+          radial-gradient(ellipse 80% 50% at 20% 20%, rgba(139, 133, 255, 0.08) 0%, transparent 50%),
+          radial-gradient(ellipse 60% 40% at 80% 80%, rgba(255, 107, 157, 0.06) 0%, transparent 50%),
+          radial-gradient(ellipse 100% 60% at 50% 100%, rgba(78, 205, 196, 0.04) 0%, transparent 40%);
+        z-index: 0;
+      }
+
+      /* Animated star field */
+      .starfield {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .star {
+        position: absolute;
+        width: 2px;
+        height: 2px;
+        background: var(--lunar);
+        border-radius: 50%;
+        opacity: 0.3;
+        animation: pulse-glow 3s ease-in-out infinite;
+      }
+
+      .star:nth-child(1) { top: 10%; left: 15%; animation-delay: 0s; }
+      .star:nth-child(2) { top: 25%; left: 75%; animation-delay: 0.5s; width: 3px; height: 3px; }
+      .star:nth-child(3) { top: 45%; left: 25%; animation-delay: 1s; }
+      .star:nth-child(4) { top: 60%; left: 85%; animation-delay: 1.5s; width: 3px; height: 3px; }
+      .star:nth-child(5) { top: 80%; left: 45%; animation-delay: 2s; }
+      .star:nth-child(6) { top: 15%; left: 55%; animation-delay: 2.5s; }
+      .star:nth-child(7) { top: 70%; left: 10%; animation-delay: 0.7s; width: 3px; height: 3px; }
+      .star:nth-child(8) { top: 35%; left: 90%; animation-delay: 1.2s; }
+
+      .container {
+        width: 100%;
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 48px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 40px;
+        position: relative;
+        z-index: 1;
+        animation: reveal 0.8s var(--ease-out-expo) forwards;
+      }
+
+      /* Header with floating star icon */
+      .header {
+        text-align: center;
+        position: relative;
+      }
+
+      .header-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 24px;
+        position: relative;
+        animation: float 4s ease-in-out infinite;
+      }
+
+      .header-icon img {
+        width: 100%;
+        height: 100%;
+        filter: drop-shadow(0 0 20px var(--astral-glow)) brightness(1.2);
+      }
+
+      .header-icon::after {
+        content: '';
+        position: absolute;
+        inset: -8px;
+        background: radial-gradient(circle, var(--astral-glow) 0%, transparent 70%);
+        border-radius: 50%;
+        z-index: -1;
+        animation: pulse-glow 2s ease-in-out infinite;
+      }
+
+      .title {
+        font-family: var(--font-serif);
+        font-size: 3rem;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+        margin-bottom: 16px;
+      }
+
+      .title em {
+        font-style: italic;
+        background: linear-gradient(135deg, var(--astral) 0%, var(--nova) 50%, var(--aurora) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .tagline {
+        font-size: 0.875rem;
+        color: var(--dusk);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      /* Glass card styling */
+      .glass-card {
+        background: linear-gradient(135deg, rgba(30, 30, 42, 0.6) 0%, rgba(20, 20, 28, 0.4) 100%);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(139, 133, 255, 0.1);
+        border-radius: 20px;
+        padding: 32px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s var(--ease-out-expo);
+      }
+
+      .glass-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent 0%, rgba(139, 133, 255, 0.3) 50%, transparent 100%);
+      }
+
+      .glass-card:hover {
+        border-color: rgba(139, 133, 255, 0.2);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 40px rgba(139, 133, 255, 0.1);
+      }
+
+      /* Drop zone */
+      .drop-zone {
+        cursor: pointer;
+        text-align: center;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        border: 2px dashed var(--twilight);
+        border-radius: 16px;
+        margin: -8px;
+        padding: 40px;
+        transition: all 0.3s var(--ease-out-expo);
+      }
+
+      .drop-zone:hover,
+      .drop-zone.dragover {
+        border-color: var(--astral);
+        background: rgba(139, 133, 255, 0.05);
+      }
+
+      .drop-zone.dragover {
+        transform: scale(1.02);
+      }
+
+      .drop-icon {
+        width: 48px;
+        height: 48px;
+        border: 2px solid var(--twilight);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--dusk);
+        transition: all 0.3s var(--ease-out-expo);
+      }
+
+      .drop-zone:hover .drop-icon {
+        border-color: var(--astral);
+        color: var(--astral);
+        transform: scale(1.1);
+      }
+
+      .drop-text {
+        font-family: var(--font-serif);
+        font-size: 1.25rem;
+        color: var(--lunar-dim);
+      }
+
+      .drop-hint {
+        font-size: 0.75rem;
+        color: var(--twilight);
+        letter-spacing: 0.05em;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      /* Preview section */
+      .preview-section {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        animation: reveal 0.5s var(--ease-out-expo) forwards;
+      }
+
+      .preview-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .preview-card {
+        background: var(--cosmos);
+        border: 1px solid var(--stardust);
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        transition: all 0.3s var(--ease-out-expo);
+      }
+
+      .preview-card:hover {
+        border-color: var(--twilight);
+      }
+
+      .preview-label {
+        font-size: 0.7rem;
+        color: var(--twilight);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .preview-label::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--twilight);
+      }
+
+      .preview-card:first-child .preview-label::before {
+        background: var(--dusk);
+      }
+
+      .preview-card:last-child .preview-label::before {
+        background: var(--aurora);
+        box-shadow: 0 0 8px var(--aurora-glow);
+      }
+
+      .preview-image-wrapper {
+        aspect-ratio: 1;
+        background: var(--void);
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .preview-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      /* Status */
+      .status {
+        font-size: 0.8rem;
+        padding: 14px 20px;
+        border-radius: 10px;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .status-processing {
+        background: rgba(139, 133, 255, 0.1);
+        color: var(--astral);
+        border: 1px solid rgba(139, 133, 255, 0.2);
+      }
+
+      .status-processing::before {
+        content: '';
+        width: 14px;
+        height: 14px;
+        border: 2px solid var(--astral);
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: star-rotate 0.8s linear infinite;
+      }
+
+      .status-success {
+        background: rgba(78, 205, 196, 0.1);
+        color: var(--aurora);
+        border: 1px solid rgba(78, 205, 196, 0.2);
+      }
+
+      .status-error {
+        background: rgba(255, 107, 157, 0.1);
+        color: var(--nova);
+        border: 1px solid rgba(255, 107, 157, 0.2);
+      }
+
+      /* Actions */
+      .actions {
+        display: flex;
+        gap: 12px;
+      }
+
+      .btn {
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        font-weight: 500;
+        padding: 16px 24px;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.25s var(--ease-out-expo);
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--astral) 0%, #6b65e0 100%);
+        color: white;
+        box-shadow: 0 4px 20px var(--astral-glow);
+      }
+
+      .btn-primary::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s;
+      }
+
+      .btn-primary:hover::before {
+        left: 100%;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px var(--astral-glow);
+      }
+
+      .btn-primary:disabled {
+        background: var(--stardust);
+        color: var(--twilight);
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .btn-primary:disabled::before {
+        display: none;
+      }
+
+      .btn-secondary {
+        background: var(--stardust);
+        color: var(--lunar-dim);
+        border: 1px solid var(--twilight);
+      }
+
+      .btn-secondary:hover {
+        background: var(--twilight);
+        color: var(--lunar);
+      }
+
+      .btn-success {
+        background: linear-gradient(135deg, var(--aurora) 0%, #3db8b0 100%);
+        color: var(--void);
+        box-shadow: 0 4px 20px var(--aurora-glow);
+      }
+
+      .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px var(--aurora-glow);
+      }
+
+      /* Info section */
+      .info-section {
+        border-top: 1px solid var(--stardust);
+        padding-top: 32px;
+      }
+
+      .info-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .info-icon {
+        width: 24px;
+        height: 24px;
+        opacity: 0.5;
+      }
+
+      .info-title {
+        font-family: var(--font-serif);
+        font-size: 1.125rem;
+        font-weight: 400;
+      }
+
+      .info-text {
+        font-size: 0.8rem;
+        color: var(--dusk);
+        line-height: 1.7;
+      }
+
+      .info-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(78, 205, 196, 0.1);
+        color: var(--aurora);
+        font-size: 0.7rem;
+        padding: 6px 12px;
+        border-radius: 20px;
+        margin-top: 16px;
+        border: 1px solid rgba(78, 205, 196, 0.2);
+      }
+
+      .info-badge::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        background: var(--aurora);
+        border-radius: 50%;
+        box-shadow: 0 0 6px var(--aurora);
+      }
+
+      /* Footer */
+      .footer {
+        text-align: center;
+        padding: 24px;
+        font-size: 0.7rem;
+        color: var(--twilight);
+        letter-spacing: 0.05em;
+      }
+
+      @media (max-width: 540px) {
+        .container {
+          padding: 32px 16px;
+        }
+
+        .title {
+          font-size: 2.25rem;
+        }
+
+        .glass-card {
+          padding: 24px;
+        }
+
+        .preview-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .actions {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="cosmic-bg"></div>
+    <div class="starfield">
+      <div class="star"></div>
+      <div class="star"></div>
+      <div class="star"></div>
+      <div class="star"></div>
+      <div class="star"></div>
+      <div class="star"></div>
+      <div class="star"></div>
+      <div class="star"></div>
+    </div>
+
+    <div class="container">
+      <header class="header">
+        <div class="header-icon">
+          <img src="./bg_48.png" alt="Gemini Star">
+        </div>
+        <h1 class="title">Gemini <em>Watermark</em> Remover</h1>
+        <p class="tagline">Reveal the original image beneath</p>
+      </header>
+
+      <main class="glass-card">
+        <div id="dropZone" class="drop-zone">
+          <div class="drop-icon">+</div>
+          <p class="drop-text">Drop your image here</p>
+          <p class="drop-hint">PNG, JPG, WebP supported</p>
+          <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        </div>
+
+        <div id="previewSection" class="preview-section hidden">
+          <div class="preview-grid">
+            <div class="preview-card">
+              <span class="preview-label">Original</span>
+              <div class="preview-image-wrapper">
+                <img id="originalPreview" class="preview-image" alt="Original">
+              </div>
+            </div>
+            <div class="preview-card">
+              <span class="preview-label">Processed</span>
+              <div class="preview-image-wrapper">
+                <img id="processedPreview" class="preview-image" alt="Processed">
+              </div>
+            </div>
+          </div>
+
+          <div id="status" class="status hidden"></div>
+
+          <div class="actions">
+            <button id="processBtn" class="btn btn-primary">Remove Watermark</button>
+            <button id="downloadBtn" class="btn btn-success hidden">Download</button>
+            <button id="resetBtn" class="btn btn-secondary">Reset</button>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <div class="info-header">
+            <img src="./bg_48.png" alt="" class="info-icon">
+            <h3 class="info-title">How it works</h3>
+          </div>
+          <p class="info-text">
+            This tool reconstructs the original pixels beneath the Gemini watermark using alpha channel analysis. The watermark pattern is mathematically reversed to reveal the underlying image content.
+          </p>
+          <span class="info-badge">100% client-side processing</span>
+        </div>
+      </main>
+
+      <footer class="footer">
+        All processing happens locally in your browser
+      </footer>
+    </div>
+
+    <script>
+      const ALPHA_THRESHOLD = 2e-3;
+      const MAX_ALPHA = 0.99;
+      const LOGO_VALUE = 255;
+
+      let engine = null;
+      let currentFile = null;
+      let processedBlob = null;
+
+      class WatermarkEngine {
+        constructor(bgCaptures) {
+          this.bgCaptures = bgCaptures;
+          this.alphaMaps = {};
+        }
+
+        static async create() {
+          const [bg48, bg96] = await Promise.all([
+            loadImage('./bg_48.png'),
+            loadImage('./bg_96.png')
+          ]);
+          return new WatermarkEngine({ bg48, bg96 });
+        }
+
+        async getAlphaMap(size) {
+          if (this.alphaMaps[size]) return this.alphaMaps[size];
+          const bgImage = size === 48 ? this.bgCaptures.bg48 : this.bgCaptures.bg96;
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(bgImage, 0, 0);
+          const imageData = ctx.getImageData(0, 0, size, size);
+          const alphaMap = calculateAlphaMap(imageData);
+          this.alphaMaps[size] = alphaMap;
+          return alphaMap;
+        }
+
+        async removeWatermarkFromImage(image) {
+          const canvas = document.createElement('canvas');
+          canvas.width = image.width;
+          canvas.height = image.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(image, 0, 0);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const config = detectWatermarkConfig(canvas.width, canvas.height);
+          const position = calculateWatermarkPosition(canvas.width, canvas.height, config);
+          const alphaMap = await this.getAlphaMap(config.logoSize);
+          removeWatermark(imageData, alphaMap, position);
+          ctx.putImageData(imageData, 0, 0);
+          return canvas;
+        }
+      }
+
+      function calculateAlphaMap(bgCaptureImageData) {
+        const { width, height, data } = bgCaptureImageData;
+        const alphaMap = new Float32Array(width * height);
+        for (let i = 0; i < alphaMap.length; i++) {
+          const idx = i * 4;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          const maxChannel = Math.max(r, g, b);
+          alphaMap[i] = maxChannel / 255.0;
+        }
+        return alphaMap;
+      }
+
+      function removeWatermark(imageData, alphaMap, position) {
+        const { x, y, width, height } = position;
+        for (let row = 0; row < height; row++) {
+          for (let col = 0; col < width; col++) {
+            const imgIdx = ((y + row) * imageData.width + (x + col)) * 4;
+            const alphaIdx = row * width + col;
+            let alpha = alphaMap[alphaIdx];
+            if (alpha < ALPHA_THRESHOLD) continue;
+            alpha = Math.min(alpha, MAX_ALPHA);
+            const oneMinusAlpha = 1.0 - alpha;
+            for (let c = 0; c < 3; c++) {
+              const watermarked = imageData.data[imgIdx + c];
+              const original = (watermarked - alpha * LOGO_VALUE) / oneMinusAlpha;
+              imageData.data[imgIdx + c] = Math.max(0, Math.min(255, Math.round(original)));
+            }
+          }
+        }
+      }
+
+      function detectWatermarkConfig(imageWidth, imageHeight) {
+        if (imageWidth > 1024 && imageHeight > 1024) {
+          return { logoSize: 96, marginRight: 64, marginBottom: 64 };
+        } else {
+          return { logoSize: 48, marginRight: 32, marginBottom: 32 };
+        }
+      }
+
+      function calculateWatermarkPosition(imageWidth, imageHeight, config) {
+        const { logoSize, marginRight, marginBottom } = config;
+        return {
+          x: imageWidth - marginRight - logoSize,
+          y: imageHeight - marginBottom - logoSize,
+          width: logoSize,
+          height: logoSize
+        };
+      }
+
+      function loadImage(src) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = src;
+        });
+      }
+
+      function canvasToBlob(canvas, type = 'image/png') {
+        return new Promise(resolve => canvas.toBlob(resolve, type));
+      }
+
+      // DOM elements
+      const dropZone = document.getElementById('dropZone');
+      const fileInput = document.getElementById('fileInput');
+      const previewSection = document.getElementById('previewSection');
+      const originalPreview = document.getElementById('originalPreview');
+      const processedPreview = document.getElementById('processedPreview');
+      const processBtn = document.getElementById('processBtn');
+      const downloadBtn = document.getElementById('downloadBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const status = document.getElementById('status');
+
+      // Initialize engine
+      WatermarkEngine.create().then(e => {
+        engine = e;
+        console.log('Watermark engine ready');
+      }).catch(err => {
+        console.error('Failed to initialize engine:', err);
+        showStatus('Failed to initialize. Please refresh.', 'error');
+      });
+
+      // Event listeners
+      dropZone.addEventListener('click', () => fileInput.click());
+      dropZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      });
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+      });
+      dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) handleFile(files[0]);
+      });
+      fileInput.addEventListener('change', e => {
+        if (e.target.files.length > 0) handleFile(e.target.files[0]);
+      });
+
+      processBtn.addEventListener('click', processImage);
+      downloadBtn.addEventListener('click', downloadImage);
+      resetBtn.addEventListener('click', reset);
+
+      function handleFile(file) {
+        if (!file.type.startsWith('image/')) {
+          showStatus('Please select an image file', 'error');
+          return;
+        }
+        currentFile = file;
+        processedBlob = null;
+
+        const url = URL.createObjectURL(file);
+        originalPreview.src = url;
+        processedPreview.src = '';
+
+        dropZone.classList.add('hidden');
+        previewSection.classList.remove('hidden');
+        downloadBtn.classList.add('hidden');
+        processBtn.disabled = false;
+        hideStatus();
+      }
+
+      async function processImage() {
+        if (!engine || !currentFile) return;
+
+        processBtn.disabled = true;
+        showStatus('Processing...', 'processing');
+
+        try {
+          const img = await loadImage(URL.createObjectURL(currentFile));
+          const canvas = await engine.removeWatermarkFromImage(img);
+          processedBlob = await canvasToBlob(canvas);
+          processedPreview.src = URL.createObjectURL(processedBlob);
+
+          showStatus('Watermark removed successfully', 'success');
+          downloadBtn.classList.remove('hidden');
+        } catch (err) {
+          console.error('Processing failed:', err);
+          showStatus('Processing failed. Please try again.', 'error');
+          processBtn.disabled = false;
+        }
+      }
+
+      function downloadImage() {
+        if (!processedBlob) return;
+        const url = URL.createObjectURL(processedBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        const originalName = currentFile.name.replace(/\.[^.]+$/, '');
+        a.download = `${originalName}_clean.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      function reset() {
+        currentFile = null;
+        processedBlob = null;
+        originalPreview.src = '';
+        processedPreview.src = '';
+        fileInput.value = '';
+        dropZone.classList.remove('hidden');
+        previewSection.classList.add('hidden');
+        downloadBtn.classList.add('hidden');
+        processBtn.disabled = false;
+        hideStatus();
+      }
+
+      function showStatus(message, type) {
+        status.textContent = message;
+        status.className = `status status-${type}`;
+        status.classList.remove('hidden');
+      }
+
+      function hideStatus() {
+        status.classList.add('hidden');
+      }
+    </script>
+  </body>
+</html>

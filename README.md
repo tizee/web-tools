@@ -29,6 +29,10 @@ A collection of single-page web tools deployed as Cloudflare Pages.
   - Map images onto a triangular pyramid with interactive geometry controls
   - Deployed at: `tizee-pyramid-filter.pages.dev`
 
+- **gemini-watermark**: Gemini Watermark Remover
+  - Remove watermarks from Gemini AI-generated images using alpha channel analysis
+  - Deployed at: `tizee-gemini-watermark.pages.dev`
+
 ## Prerequisites
 
 1. Install [Node.js](https://nodejs.org/) (v16.17.0 or later)
@@ -54,6 +58,7 @@ pnpm dev:daoli     # Daoli tool
 pnpm dev:emoji     # Emoji splitter
 pnpm dev:solar     # Solar tool
 pnpm dev:pyramid   # Pyramid filter
+pnpm dev:gemini    # Gemini watermark remover
 ```
 
 ## Deployment
@@ -67,6 +72,7 @@ pnpm deploy:daoli
 pnpm deploy:emoji
 pnpm deploy:solar
 pnpm deploy:pyramid
+pnpm deploy:gemini
 ```
 
 ### Deploy all tools
