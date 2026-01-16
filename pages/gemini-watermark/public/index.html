@@ -43,11 +43,6 @@
         50% { opacity: 0.7; transform: scale(1.05); }
       }
 
-      @keyframes shimmer {
-        0% { background-position: -200% center; }
-        100% { background-position: 200% center; }
-      }
-
       @keyframes reveal {
         0% { opacity: 0; transform: translateY(20px); }
         100% { opacity: 1; transform: translateY(0); }
@@ -56,6 +51,11 @@
       @keyframes star-rotate {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
+      }
+
+      @keyframes slide-up {
+        0% { opacity: 0; transform: translateY(10px); }
+        100% { opacity: 1; transform: translateY(0); }
       }
 
       * {
@@ -81,7 +81,6 @@
         overflow-x: hidden;
       }
 
-      /* Cosmic background gradient */
       .cosmic-bg {
         position: fixed;
         top: 0;
@@ -96,7 +95,6 @@
         z-index: 0;
       }
 
-      /* Animated star field */
       .starfield {
         position: fixed;
         top: 0;
@@ -133,22 +131,21 @@
         padding: 48px 24px;
         display: flex;
         flex-direction: column;
-        gap: 40px;
+        gap: 32px;
         position: relative;
         z-index: 1;
         animation: reveal 0.8s var(--ease-out-expo) forwards;
       }
 
-      /* Header with floating star icon */
       .header {
         text-align: center;
         position: relative;
       }
 
       .header-icon {
-        width: 64px;
-        height: 64px;
-        margin: 0 auto 24px;
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 20px;
         position: relative;
         animation: float 4s ease-in-out infinite;
       }
@@ -171,11 +168,11 @@
 
       .title {
         font-family: var(--font-serif);
-        font-size: 3rem;
+        font-size: 2.5rem;
         font-weight: 400;
         letter-spacing: -0.02em;
         line-height: 1.1;
-        margin-bottom: 16px;
+        margin-bottom: 12px;
       }
 
       .title em {
@@ -187,20 +184,19 @@
       }
 
       .tagline {
-        font-size: 0.875rem;
+        font-size: 0.8rem;
         color: var(--dusk);
         letter-spacing: 0.08em;
         text-transform: uppercase;
       }
 
-      /* Glass card styling */
       .glass-card {
         background: linear-gradient(135deg, rgba(30, 30, 42, 0.6) 0%, rgba(20, 20, 28, 0.4) 100%);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         border: 1px solid rgba(139, 133, 255, 0.1);
         border-radius: 20px;
-        padding: 32px;
+        padding: 24px;
         position: relative;
         overflow: hidden;
         transition: all 0.4s var(--ease-out-expo);
@@ -216,25 +212,18 @@
         background: linear-gradient(90deg, transparent 0%, rgba(139, 133, 255, 0.3) 50%, transparent 100%);
       }
 
-      .glass-card:hover {
-        border-color: rgba(139, 133, 255, 0.2);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 40px rgba(139, 133, 255, 0.1);
-      }
-
-      /* Drop zone */
       .drop-zone {
         cursor: pointer;
         text-align: center;
-        min-height: 200px;
+        min-height: 180px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 16px;
+        gap: 14px;
         border: 2px dashed var(--twilight);
         border-radius: 16px;
-        margin: -8px;
-        padding: 40px;
+        padding: 32px 24px;
         transition: all 0.3s var(--ease-out-expo);
       }
 
@@ -249,14 +238,14 @@
       }
 
       .drop-icon {
-        width: 48px;
-        height: 48px;
+        width: 44px;
+        height: 44px;
         border: 2px solid var(--twilight);
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.4rem;
         color: var(--dusk);
         transition: all 0.3s var(--ease-out-expo);
       }
@@ -269,12 +258,12 @@
 
       .drop-text {
         font-family: var(--font-serif);
-        font-size: 1.25rem;
+        font-size: 1.1rem;
         color: var(--lunar-dim);
       }
 
       .drop-hint {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         color: var(--twilight);
         letter-spacing: 0.05em;
       }
@@ -283,116 +272,134 @@
         display: none !important;
       }
 
-      /* Preview section */
-      .preview-section {
+      /* Result section */
+      .result-section {
         display: flex;
         flex-direction: column;
-        gap: 24px;
-        animation: reveal 0.5s var(--ease-out-expo) forwards;
-      }
-
-      .preview-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
         gap: 20px;
+        animation: slide-up 0.4s var(--ease-out-expo) forwards;
       }
 
-      .preview-card {
+      /* Image info panel */
+      .info-panel {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        padding: 16px;
         background: var(--cosmos);
         border: 1px solid var(--stardust);
         border-radius: 12px;
-        padding: 16px;
+      }
+
+      .info-item {
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        transition: all 0.3s var(--ease-out-expo);
+        gap: 4px;
       }
 
-      .preview-card:hover {
-        border-color: var(--twilight);
-      }
-
-      .preview-label {
-        font-size: 0.7rem;
+      .info-label {
+        font-size: 0.65rem;
         color: var(--twilight);
         text-transform: uppercase;
-        letter-spacing: 0.12em;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        letter-spacing: 0.1em;
       }
 
-      .preview-label::before {
-        content: '';
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--twilight);
+      .info-value {
+        font-size: 0.85rem;
+        color: var(--lunar);
+        font-weight: 500;
       }
 
-      .preview-card:first-child .preview-label::before {
-        background: var(--dusk);
+      .info-value.detected {
+        color: var(--aurora);
       }
 
-      .preview-card:last-child .preview-label::before {
-        background: var(--aurora);
-        box-shadow: 0 0 8px var(--aurora-glow);
+      .info-value.not-detected {
+        color: var(--nova);
       }
 
-      .preview-image-wrapper {
-        aspect-ratio: 1;
-        background: var(--void);
-        border-radius: 8px;
+      /* Image comparison */
+      .image-compare {
+        position: relative;
+        border-radius: 12px;
         overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        background: var(--cosmos);
+        border: 1px solid var(--stardust);
       }
 
-      .preview-image {
+      .image-wrapper {
+        position: relative;
         width: 100%;
-        height: 100%;
-        object-fit: contain;
       }
 
-      /* Status */
-      .status {
-        font-size: 0.8rem;
-        padding: 14px 20px;
-        border-radius: 10px;
-        text-align: center;
+      .result-image {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      /* Before/After toggle */
+      .compare-toggle {
+        position: absolute;
+        bottom: 12px;
+        left: 50%;
+        transform: translateX(-50%);
         display: flex;
+        background: rgba(8, 8, 10, 0.85);
+        backdrop-filter: blur(8px);
+        border-radius: 8px;
+        padding: 4px;
+        gap: 4px;
+        border: 1px solid var(--stardust);
+      }
+
+      .toggle-btn {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        background: transparent;
+        color: var(--dusk);
+        transition: all 0.2s var(--ease-out-expo);
+      }
+
+      .toggle-btn.active {
+        background: var(--astral);
+        color: white;
+      }
+
+      .toggle-btn:not(.active):hover {
+        color: var(--lunar);
+      }
+
+      /* Processing overlay */
+      .processing-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(8, 8, 10, 0.8);
+        backdrop-filter: blur(4px);
+        display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 10px;
+        gap: 12px;
+        z-index: 10;
       }
 
-      .status-processing {
-        background: rgba(139, 133, 255, 0.1);
-        color: var(--astral);
-        border: 1px solid rgba(139, 133, 255, 0.2);
-      }
-
-      .status-processing::before {
-        content: '';
-        width: 14px;
-        height: 14px;
-        border: 2px solid var(--astral);
-        border-top-color: transparent;
+      .spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--stardust);
+        border-top-color: var(--astral);
         border-radius: 50%;
         animation: star-rotate 0.8s linear infinite;
       }
 
-      .status-success {
-        background: rgba(78, 205, 196, 0.1);
-        color: var(--aurora);
-        border: 1px solid rgba(78, 205, 196, 0.2);
-      }
-
-      .status-error {
-        background: rgba(255, 107, 157, 0.1);
-        color: var(--nova);
-        border: 1px solid rgba(255, 107, 157, 0.2);
+      .processing-text {
+        font-size: 0.8rem;
+        color: var(--lunar-dim);
       }
 
       /* Actions */
@@ -403,11 +410,11 @@
 
       .btn {
         font-family: var(--font-mono);
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         font-weight: 500;
-        padding: 16px 24px;
+        padding: 14px 20px;
         border: none;
-        border-radius: 12px;
+        border-radius: 10px;
         cursor: pointer;
         transition: all 0.25s var(--ease-out-expo);
         flex: 1;
@@ -416,41 +423,14 @@
       }
 
       .btn-primary {
-        background: linear-gradient(135deg, var(--astral) 0%, #6b65e0 100%);
-        color: white;
-        box-shadow: 0 4px 20px var(--astral-glow);
-      }
-
-      .btn-primary::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-        transition: left 0.5s;
-      }
-
-      .btn-primary:hover::before {
-        left: 100%;
+        background: linear-gradient(135deg, var(--aurora) 0%, #3db8b0 100%);
+        color: var(--void);
+        box-shadow: 0 4px 20px var(--aurora-glow);
       }
 
       .btn-primary:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 30px var(--astral-glow);
-      }
-
-      .btn-primary:disabled {
-        background: var(--stardust);
-        color: var(--twilight);
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-      }
-
-      .btn-primary:disabled::before {
-        display: none;
+        box-shadow: 0 8px 30px var(--aurora-glow);
       }
 
       .btn-secondary {
@@ -464,44 +444,34 @@
         color: var(--lunar);
       }
 
-      .btn-success {
-        background: linear-gradient(135deg, var(--aurora) 0%, #3db8b0 100%);
-        color: var(--void);
-        box-shadow: 0 4px 20px var(--aurora-glow);
-      }
-
-      .btn-success:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 30px var(--aurora-glow);
-      }
-
       /* Info section */
       .info-section {
         border-top: 1px solid var(--stardust);
-        padding-top: 32px;
+        padding-top: 24px;
+        margin-top: 8px;
       }
 
       .info-header {
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin-bottom: 16px;
+        gap: 10px;
+        margin-bottom: 12px;
       }
 
       .info-icon {
-        width: 24px;
-        height: 24px;
+        width: 20px;
+        height: 20px;
         opacity: 0.5;
       }
 
       .info-title {
         font-family: var(--font-serif);
-        font-size: 1.125rem;
+        font-size: 1rem;
         font-weight: 400;
       }
 
       .info-text {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         color: var(--dusk);
         line-height: 1.7;
       }
@@ -512,27 +482,26 @@
         gap: 6px;
         background: rgba(78, 205, 196, 0.1);
         color: var(--aurora);
-        font-size: 0.7rem;
-        padding: 6px 12px;
+        font-size: 0.65rem;
+        padding: 5px 10px;
         border-radius: 20px;
-        margin-top: 16px;
+        margin-top: 12px;
         border: 1px solid rgba(78, 205, 196, 0.2);
       }
 
       .info-badge::before {
         content: '';
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
         background: var(--aurora);
         border-radius: 50%;
         box-shadow: 0 0 6px var(--aurora);
       }
 
-      /* Footer */
       .footer {
         text-align: center;
-        padding: 24px;
-        font-size: 0.7rem;
+        padding: 20px;
+        font-size: 0.65rem;
         color: var(--twilight);
         letter-spacing: 0.05em;
       }
@@ -543,19 +512,24 @@
         }
 
         .title {
-          font-size: 2.25rem;
+          font-size: 2rem;
         }
 
         .glass-card {
-          padding: 24px;
+          padding: 20px;
         }
 
-        .preview-grid {
-          grid-template-columns: 1fr;
+        .info-panel {
+          grid-template-columns: 1fr 1fr;
         }
 
         .actions {
           flex-direction: column;
+        }
+
+        .toggle-btn {
+          padding: 6px 12px;
+          font-size: 0.65rem;
         }
       }
     </style>
@@ -590,28 +564,47 @@
           <input type="file" id="fileInput" accept="image/*" style="display: none;">
         </div>
 
-        <div id="previewSection" class="preview-section hidden">
-          <div class="preview-grid">
-            <div class="preview-card">
-              <span class="preview-label">Original</span>
-              <div class="preview-image-wrapper">
-                <img id="originalPreview" class="preview-image" alt="Original">
-              </div>
+        <div id="resultSection" class="result-section hidden">
+          <!-- Image Info Panel -->
+          <div class="info-panel">
+            <div class="info-item">
+              <span class="info-label">Dimensions</span>
+              <span id="infoDimensions" class="info-value">-</span>
             </div>
-            <div class="preview-card">
-              <span class="preview-label">Processed</span>
-              <div class="preview-image-wrapper">
-                <img id="processedPreview" class="preview-image" alt="Processed">
-              </div>
+            <div class="info-item">
+              <span class="info-label">Watermark</span>
+              <span id="infoWatermark" class="info-value">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Logo Size</span>
+              <span id="infoLogoSize" class="info-value">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Position</span>
+              <span id="infoPosition" class="info-value">-</span>
             </div>
           </div>
 
-          <div id="status" class="status hidden"></div>
+          <!-- Image Compare -->
+          <div class="image-compare">
+            <div class="image-wrapper">
+              <img id="originalImage" class="result-image" alt="Original" style="display: none;">
+              <img id="processedImage" class="result-image" alt="Processed">
+              <div id="processingOverlay" class="processing-overlay hidden">
+                <div class="spinner"></div>
+                <span class="processing-text">Processing...</span>
+              </div>
+            </div>
+            <div class="compare-toggle">
+              <button id="btnBefore" class="toggle-btn">Before</button>
+              <button id="btnAfter" class="toggle-btn active">After</button>
+            </div>
+          </div>
 
+          <!-- Actions -->
           <div class="actions">
-            <button id="processBtn" class="btn btn-primary">Remove Watermark</button>
-            <button id="downloadBtn" class="btn btn-success hidden">Download</button>
-            <button id="resetBtn" class="btn btn-secondary">Reset</button>
+            <button id="downloadBtn" class="btn btn-primary">Download Clean Image</button>
+            <button id="resetBtn" class="btn btn-secondary">New Image</button>
           </div>
         </div>
 
@@ -621,7 +614,8 @@
             <h3 class="info-title">How it works</h3>
           </div>
           <p class="info-text">
-            This tool reconstructs the original pixels beneath the Gemini watermark using alpha channel analysis. The watermark pattern is mathematically reversed to reveal the underlying image content.
+            This tool reconstructs the original pixels beneath the Gemini watermark using alpha channel analysis.
+            Images larger than 1024x1024 use 96px watermarks; smaller images use 48px.
           </p>
           <span class="info-badge">100% client-side processing</span>
         </div>
@@ -640,6 +634,10 @@
       let engine = null;
       let currentFile = null;
       let processedBlob = null;
+      let originalUrl = null;
+      let processedUrl = null;
+      let currentView = 'after';
+      let imageInfo = null;
 
       class WatermarkEngine {
         constructor(bgCaptures) {
@@ -678,6 +676,16 @@
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const config = detectWatermarkConfig(canvas.width, canvas.height);
           const position = calculateWatermarkPosition(canvas.width, canvas.height, config);
+
+          // Store info for display
+          imageInfo = {
+            width: canvas.width,
+            height: canvas.height,
+            logoSize: config.logoSize,
+            position: position,
+            detected: canvas.width >= 112 && canvas.height >= 112 // minimum size for watermark
+          };
+
           const alphaMap = await this.getAlphaMap(config.logoSize);
           removeWatermark(imageData, alphaMap, position);
           ctx.putImageData(imageData, 0, 0);
@@ -752,13 +760,20 @@
       // DOM elements
       const dropZone = document.getElementById('dropZone');
       const fileInput = document.getElementById('fileInput');
-      const previewSection = document.getElementById('previewSection');
-      const originalPreview = document.getElementById('originalPreview');
-      const processedPreview = document.getElementById('processedPreview');
-      const processBtn = document.getElementById('processBtn');
+      const resultSection = document.getElementById('resultSection');
+      const originalImage = document.getElementById('originalImage');
+      const processedImage = document.getElementById('processedImage');
+      const processingOverlay = document.getElementById('processingOverlay');
       const downloadBtn = document.getElementById('downloadBtn');
       const resetBtn = document.getElementById('resetBtn');
-      const status = document.getElementById('status');
+      const btnBefore = document.getElementById('btnBefore');
+      const btnAfter = document.getElementById('btnAfter');
+
+      // Info panel elements
+      const infoDimensions = document.getElementById('infoDimensions');
+      const infoWatermark = document.getElementById('infoWatermark');
+      const infoLogoSize = document.getElementById('infoLogoSize');
+      const infoPosition = document.getElementById('infoPosition');
 
       // Initialize engine
       WatermarkEngine.create().then(e => {
@@ -766,7 +781,6 @@
         console.log('Watermark engine ready');
       }).catch(err => {
         console.error('Failed to initialize engine:', err);
-        showStatus('Failed to initialize. Please refresh.', 'error');
       });
 
       // Event listeners
@@ -788,48 +802,95 @@
         if (e.target.files.length > 0) handleFile(e.target.files[0]);
       });
 
-      processBtn.addEventListener('click', processImage);
       downloadBtn.addEventListener('click', downloadImage);
       resetBtn.addEventListener('click', reset);
 
-      function handleFile(file) {
+      // Compare toggle
+      btnBefore.addEventListener('click', () => setView('before'));
+      btnAfter.addEventListener('click', () => setView('after'));
+
+      function setView(view) {
+        currentView = view;
+        if (view === 'before') {
+          originalImage.style.display = 'block';
+          processedImage.style.display = 'none';
+          btnBefore.classList.add('active');
+          btnAfter.classList.remove('active');
+        } else {
+          originalImage.style.display = 'none';
+          processedImage.style.display = 'block';
+          btnBefore.classList.remove('active');
+          btnAfter.classList.add('active');
+        }
+      }
+
+      async function handleFile(file) {
         if (!file.type.startsWith('image/')) {
-          showStatus('Please select an image file', 'error');
+          alert('Please select an image file');
           return;
         }
+
         currentFile = file;
         processedBlob = null;
 
-        const url = URL.createObjectURL(file);
-        originalPreview.src = url;
-        processedPreview.src = '';
+        // Clean up previous URLs
+        if (originalUrl) URL.revokeObjectURL(originalUrl);
+        if (processedUrl) URL.revokeObjectURL(processedUrl);
 
+        originalUrl = URL.createObjectURL(file);
+        originalImage.src = originalUrl;
+
+        // Show result section with processing state
         dropZone.classList.add('hidden');
-        previewSection.classList.remove('hidden');
-        downloadBtn.classList.add('hidden');
-        processBtn.disabled = false;
-        hideStatus();
+        resultSection.classList.remove('hidden');
+        processingOverlay.classList.remove('hidden');
+
+        // Reset to "after" view
+        setView('after');
+        processedImage.src = '';
+
+        // Auto-process
+        await processImage();
       }
 
       async function processImage() {
         if (!engine || !currentFile) return;
 
-        processBtn.disabled = true;
-        showStatus('Processing...', 'processing');
-
         try {
-          const img = await loadImage(URL.createObjectURL(currentFile));
+          const img = await loadImage(originalUrl);
           const canvas = await engine.removeWatermarkFromImage(img);
           processedBlob = await canvasToBlob(canvas);
-          processedPreview.src = URL.createObjectURL(processedBlob);
 
-          showStatus('Watermark removed successfully', 'success');
-          downloadBtn.classList.remove('hidden');
+          processedUrl = URL.createObjectURL(processedBlob);
+          processedImage.src = processedUrl;
+
+          // Update info panel
+          updateInfoPanel();
+
+          // Hide processing overlay
+          processingOverlay.classList.add('hidden');
         } catch (err) {
           console.error('Processing failed:', err);
-          showStatus('Processing failed. Please try again.', 'error');
-          processBtn.disabled = false;
+          processingOverlay.classList.add('hidden');
+          alert('Processing failed. Please try again.');
         }
+      }
+
+      function updateInfoPanel() {
+        if (!imageInfo) return;
+
+        infoDimensions.textContent = `${imageInfo.width} x ${imageInfo.height}`;
+
+        if (imageInfo.detected) {
+          infoWatermark.textContent = 'Detected';
+          infoWatermark.className = 'info-value detected';
+        } else {
+          infoWatermark.textContent = 'Too small';
+          infoWatermark.className = 'info-value not-detected';
+        }
+
+        infoLogoSize.textContent = `${imageInfo.logoSize}px`;
+        infoPosition.textContent = `(${imageInfo.position.x}, ${imageInfo.position.y})`;
       }
 
       function downloadImage() {
@@ -846,24 +907,22 @@
       function reset() {
         currentFile = null;
         processedBlob = null;
-        originalPreview.src = '';
-        processedPreview.src = '';
+        imageInfo = null;
+
+        if (originalUrl) URL.revokeObjectURL(originalUrl);
+        if (processedUrl) URL.revokeObjectURL(processedUrl);
+        originalUrl = null;
+        processedUrl = null;
+
+        originalImage.src = '';
+        processedImage.src = '';
         fileInput.value = '';
+
         dropZone.classList.remove('hidden');
-        previewSection.classList.add('hidden');
-        downloadBtn.classList.add('hidden');
-        processBtn.disabled = false;
-        hideStatus();
-      }
+        resultSection.classList.add('hidden');
 
-      function showStatus(message, type) {
-        status.textContent = message;
-        status.className = `status status-${type}`;
-        status.classList.remove('hidden');
-      }
-
-      function hideStatus() {
-        status.classList.add('hidden');
+        // Reset view
+        setView('after');
       }
     </script>
   </body>
